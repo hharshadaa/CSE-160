@@ -45,14 +45,14 @@ class Camera {
   }
 
   moveBackwards(speed = 0.2) {
-    let b = new Vector3();
-    b.set(this.eye);
-    b.sub(this.at);
-    b.normalize();
-    b.mul(speed);
+    let f = new Vector3();
+    f.set(this.at);
+    f.sub(this.eye);
+    f.normalize();
+    f.mul(speed);
 
-    this.eye.add(b);
-    this.at.add(b);
+    this.eye.sub(f);
+    this.at.sub(f);
 
     this.updateView();
   }
@@ -61,6 +61,7 @@ class Camera {
     let f = new Vector3();
     f.set(this.at);
     f.sub(this.eye);
+    f.normalize();
 
     let s = Vector3.cross(this.up, f);
     s.normalize();
@@ -76,6 +77,7 @@ class Camera {
     let f = new Vector3();
     f.set(this.at);
     f.sub(this.eye);
+    f.normalize();
 
     let s = Vector3.cross(f, this.up);
     s.normalize();
@@ -101,6 +103,7 @@ class Camera {
     );
 
     let f_prime = rotationMatrix.multiplyVector3(f);
+
     this.at = new Vector3(this.eye.elements);
     this.at.add(f_prime);
 

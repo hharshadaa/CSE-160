@@ -441,16 +441,28 @@ if (g_pokeAnimation) {
 }
 
 function keydown(ev) {
-  if (ev.keyCode == 39) { // Right arrow
-    g_camera.moveRight(0.2);
-  } 
-  else if (ev.keyCode == 37) { // Left arrow
-    g_camera.moveLeft(0.2);
+
+  if (ev.key === 'w' || ev.key === 'W') {
+    g_camera.moveForward();
+  }
+  else if (ev.key === 's' || ev.key === 'S') {
+    g_camera.moveBackwards();
+  }
+  else if (ev.key === 'a' || ev.key === 'A') {
+    g_camera.moveLeft();
+  }
+  else if (ev.key === 'd' || ev.key === 'D') {
+    g_camera.moveRight();
+  }
+  else if (ev.key === 'q' || ev.key === 'Q') {
+    g_camera.panLeft();
+  }
+  else if (ev.key === 'e' || ev.key === 'E') {
+    g_camera.panRight();
   }
 
   renderAllShapes();
 }
-
 var g_eye = [0,0,3];
 var g_at = [0,0,-100];
 var g_up = [0,1,0];
