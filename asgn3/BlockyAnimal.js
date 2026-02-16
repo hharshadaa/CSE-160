@@ -522,15 +522,16 @@ var g_map = [
 ];
 
 function drawMap() {
-  for (let x = 0; x < 8; x++) {
-    for (let y = 0; y < 8; y++) {
-      if (g_map[x][y] == 1) {
-        let block = new Cube();
-        block.color = [1.0, 1.0, 1.0, 1.0];
-        block.textureNum = -2;
-        block.matrix.translate(x - 4, -0.75, y - 4);
-        block.matrix.scale(1, 1, 1);
-        block.render();
+  for (x = 0; x < 32; x++) {
+    for (y = 0; y < 32; y++) {
+      // console.log(x, y);
+      if (x == 0 || x == 31 || y == 0 || y == 31) {
+        var body = new Cube();
+        body.color = [0.8, 1.0, 1.0, 1.0];
+        body.matrix.translate(0, -0.75, 0);
+        body.matrix.scale(0.3, 0.3, 0.3);
+        body.matrix.translate(x - 16, 0, y - 16);
+        body.render();
       }
     }
   }
