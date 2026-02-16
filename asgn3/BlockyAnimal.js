@@ -24,23 +24,28 @@ var FSHADER_SOURCE = `
   uniform vec4 u_FragColor;
   uniform sampler2D u_Sampler0;
   uniform sampler2D u_Sampler1;
+  uniform sampler2D u_Sampler2;
   uniform int u_whichTexture;
 
   void main() {
+
     if (u_whichTexture == -2) {
-      gl_FragColor = u_FragColor; // Use color
+      gl_FragColor = u_FragColor;
 
     } else if (u_whichTexture == -1) {
-      gl_FragColor = vec4(v_UV, 1.0, 1.0);  // Use UV debug color
+      gl_FragColor = vec4(v_UV, 1.0, 1.0);
 
     } else if (u_whichTexture == 0) {
-      gl_FragColor = texture2D(u_Sampler0, v_UV); // Use texture0
+      gl_FragColor = texture2D(u_Sampler0, v_UV);
 
     } else if (u_whichTexture == 1) {
-    gl_FragColor = texture2D(u_Sampler1, v_UV);  //GRASS
+      gl_FragColor = texture2D(u_Sampler1, v_UV);
+
+    } else if (u_whichTexture == 2) {
+      gl_FragColor = texture2D(u_Sampler2, v_UV);
 
     } else {
-      gl_FragColor = vec4(1.0, 0.2, 0.2, 1.0); // Error color (reddish)
+      gl_FragColor = vec4(1.0, 0.2, 0.2, 1.0);
     }
   }`
 
@@ -56,6 +61,7 @@ let u_ViewMatrix;
 let u_GlobalRotateMatrix;
 let u_Sampler0;
 let u_Sampler1;
+let u_Sampler2;
 let u_whichTexture;
 
 let g_camera;
@@ -138,6 +144,12 @@ function connectVariablesToGLSL(){
   u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
   if (!u_Sampler1) {
     console.log('Failed to get the storage location of u_Sampler1');
+    return;
+  }
+
+    u_Sampler2 = gl.getUniformLocation(gl.program, 'u_Sampler2');
+  if (!u_Sampler2) {
+    console.log('Failed to get u_Sampler2');
     return;
   }
 
@@ -276,6 +288,14 @@ function initTextures() {
   };
   image1.src = 'grass.jpg';
 
+  // DIRT (texture 2)
+    var image2 = new Image();
+    image2.onload = function() {
+      sendTEXTURE2(image2);
+
+    };
+image2.src = 'dirt.jpg';
+
   return true;
 }
 
@@ -331,6 +351,34 @@ function sendTEXTURE1(image) {
   console.log('finished loadTexture1');
 }
 
+function sendTEXTURE2(image) {
+
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create texture2');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+
+  gl.uniform1i(u_Sampler2, 2);
+}
+
+
 function main() {
 
   setupWebGL();
@@ -338,9 +386,11 @@ function main() {
   g_camera = new Camera();
   addActionsForHtmlUI();
 
+
   document.onkeydown = keydown;
 
   initTextures();
+  initMap();
 
   
   canvas.onmousedown = function(ev) {
@@ -487,6 +537,20 @@ function keydown(ev) {
     g_camera.panRight();
   }
 
+    else if (ev.key === 'f' || ev.key === 'F') {
+    let tile = getFrontTile();
+    if (tile) {
+      g_map[tile[0]][tile[1]] += 1;
+    }
+  }
+
+  else if (ev.key === 'g' || ev.key === 'G') {
+    let tile = getFrontTile();
+    if (tile && g_map[tile[0]][tile[1]] > 0) {
+      g_map[tile[0]][tile[1]] -= 1;
+    }
+  }
+
   renderAllShapes();
 }
 var g_eye = [0,0,3];
@@ -494,54 +558,109 @@ var g_at = [0,0,-100];
 var g_up = [0,1,0];
 
 
-var g_map = [
-  [1, 1, 1, 1, 1, 1, 1, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-];
+//var g_map = [
+ // [1, 1, 1, 1, 1, 1, 1, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 1, 1, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 0, 1, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+//];
+
+let g_map = [];
+
+function initMap() {
+  for (let x = 0; x < 32; x++) {
+    g_map[x] = [];
+    for (let z = 0; z < 32; z++) {
+      g_map[x][z] = 0; // height at each tile
+    }
+  }
+}
 
 function drawMap() {
 
   for (let x = 0; x < 32; x++) {
     for (let z = 0; z < 32; z++) {
 
-      // ----------------------
-      // FLOOR (GRASS)
-      // ----------------------
-      let tile = new Cube();
-      tile.textureNum = 1; // grass texture
-      tile.matrix.setTranslate(x - 16, -0.75, z - 16);
-      tile.matrix.scale(1, 0.1, 1);
-      tile.renderfaster(); // use render() for textures
+      // ===============================
+      // PLAYER PLACED BLOCKS
+      // ===============================
+      let height = g_map[x][z];
 
+      for (let h = 0; h < height; h++) {
 
-      // ----------------------
-      // BORDER WALLS (2 HIGH)
-      // ----------------------
+        let block = new Cube();
+        block.textureNum = -2;
+        block.color = [0.5, 0.3, 0.1, 1.0];
+
+        block.matrix.setTranslate(x - 16, h - 0.65, z - 16);
+        block.renderfaster();
+      }
+
+      // ===============================
+      // 7x7 CENTER BORDER (3 tall)
+      // ===============================
+
+      let inCenterRange =
+        x >= 13 && x <= 19 &&
+        z >= 13 && z <= 19;
+
       let isBorder =
-        x === 0 || x === 31 ||
-        z === 0 || z === 31;
+        inCenterRange &&
+        (x === 13 || x === 19 || z === 13 || z === 19);
 
       if (isBorder) {
 
-        for (let h = 0; h < 2; h++) {
+        // Middle tile of each wall (center = 16)
+        let isMiddleTile =
+          (x === 16 && (z === 13 || z === 19)) ||
+          (z === 16 && (x === 13 || x === 19));
+
+        for (let h = 0; h < 3; h++) {
+
+          // Remove height 0 and 1 (keep only top block)
+          if (isMiddleTile && (h === 0 || h === 1)) {
+            continue;
+          }
 
           let wall = new Cube();
-          wall.textureNum = -2; // color mode
-          wall.color = [0.4, 0.25, 0.1, 1.0]; // brown
+          wall.textureNum = 2; // dirt texture
 
-          wall.matrix.setTranslate(x - 16, -0.65 + h, z - 16);
-          wall.renderfaster();
+          wall.matrix.setTranslate(x - 16, h - 0.65, z - 16);
+          wall.render();
         }
       }
 
     }
   }
+}
+
+
+function getFrontTile() {
+
+  let eye = g_camera.eye.elements;
+  let at  = g_camera.at.elements;
+
+  let dirX = at[0] - eye[0];
+  let dirZ = at[2] - eye[2];
+
+  // normalize direction
+  let length = Math.sqrt(dirX*dirX + dirZ*dirZ);
+  dirX /= length;
+  dirZ /= length;
+
+  // one block in front
+  let frontX = Math.floor(eye[0] + dirX + 16);
+  let frontZ = Math.floor(eye[2] + dirZ + 16);
+
+  if (frontX < 0 || frontX >= 32 || frontZ < 0 || frontZ >= 32) {
+    return null;
+  }
+
+  return [frontX, frontZ];
 }
 
 function onMove(ev) {
@@ -556,6 +675,7 @@ function onMove(ev) {
 
   g_lastMouseX = ev.clientX;
 }
+
 
 
 function renderAllShapes(){
@@ -592,13 +712,11 @@ function renderAllShapes(){
  drawMap();
 
  // Draw the floor
-var body = new Cube();
-body.color = [1.0, 0.0, 0.0, 1.0];
-body.textureNum = 1;
-body.matrix.translate(0, -0.75, 0.0);
-body.matrix.scale(10, 0, 10);
-body.matrix.translate(-0.5, 0, -0.5);
-body.render();
+var floor = new Cube();
+floor.textureNum = 1; // grass
+floor.matrix.setTranslate(-16, -0.75, -16); 
+floor.matrix.scale(32, 0.1, 32);
+floor.render();
 
 //sky
 var sky = new Cube();
@@ -611,11 +729,12 @@ sky.render();
 
 var body = new Cube();
 body.color = [0.6, 0.9, 0.4, 1.0];
-body.textureNum = 0;
+
 body.matrix.translate(-0.4 + g_bodyOffset, -0.3, -0.5);
-body.matrix.rotate(-30, 1, 0, 0);
+
 body.matrix.scale(0.8, 0.2, 0.9);
 body.matrix.translate(0, 0, 0.15);
+
 body.render();
 
 //3D
@@ -781,6 +900,25 @@ backRightFin.matrix.translate(-1.0, 0.5, 0.5);
 backRightFin.matrix.scale(0.25, 0.3, 0.40);
 backRightFin.render();
 
+
+
+var egg = new Cube();
+egg.textureNum = -2;
+egg.color = [1.0, 0.0, 0.0, 1.0];
+
+egg.matrix.setTranslate(0.85, -0.45, .6);
+egg.matrix.scale(0.25, 0.25, 0.25);
+
+egg.render();
+
+var egg2 = new Cube();
+egg2.textureNum = -2;
+egg2.color = [1.0, 1.0, 0.0, 1.0];
+
+egg2.matrix.setTranslate(0.25, -0.45, 1);
+egg2.matrix.scale(0.3, 0.3, 0.3);
+
+egg2.render();
 
 
 
