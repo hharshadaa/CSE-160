@@ -506,20 +506,40 @@ var g_map = [
 ];
 
 function drawMap() {
-  var body = new Cube();
-  for (i = 0; i < 2; i++) {
-    for (x = 0; x < 32; x++) {
-      for (y = 0; y < 32; y++) {
 
-        //var body = new Cube();
+  for (let x = 0; x < 32; x++) {
+    for (let z = 0; z < 32; z++) {
 
-        body.color = [0.8, 1.0, 1.0, 1.0];
-        body.matrix.setTranslate(0, -0.75, 0);
-        body.matrix.scale(.4, .4, .4);
-        body.matrix.translate(x - 16, 0, y - 16);
-        body.renderfaster();
+      // ----------------------
+      // FLOOR (GRASS)
+      // ----------------------
+      let tile = new Cube();
+      tile.textureNum = 1; // grass texture
+      tile.matrix.setTranslate(x - 16, -0.75, z - 16);
+      tile.matrix.scale(1, 0.1, 1);
+      tile.renderfaster(); // use render() for textures
 
+
+      // ----------------------
+      // BORDER WALLS (2 HIGH)
+      // ----------------------
+      let isBorder =
+        x === 0 || x === 31 ||
+        z === 0 || z === 31;
+
+      if (isBorder) {
+
+        for (let h = 0; h < 2; h++) {
+
+          let wall = new Cube();
+          wall.textureNum = -2; // color mode
+          wall.color = [0.4, 0.25, 0.1, 1.0]; // brown
+
+          wall.matrix.setTranslate(x - 16, -0.65 + h, z - 16);
+          wall.renderfaster();
+        }
       }
+
     }
   }
 }
