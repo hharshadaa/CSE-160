@@ -966,6 +966,25 @@ egg2.matrix.scale(0.3, 0.3, 0.3);
 egg2.render();
 
 
+drawTree(-8, -8);
+drawTree(-10, 6);
+drawTree(9, -7);
+drawTree(7, 8);
+drawTree(-12, 3);
+drawTree(-8, -8);
+drawTree(-10, 6);
+drawTree(9, -7);
+drawTree(7, 8);
+drawTree(-12, 3);
+
+
+
+
+// ==========================
+// WATER POND
+// ==========================
+
+
 
 
  //var yellow = new Cube();
@@ -1008,4 +1027,39 @@ function sendTextToHTML(text, htmlID) {
     return;
   }
   htmlElm.innerHTML = text;
+}
+
+function drawTree(x, z) {
+
+  // TRUNK
+  var trunk = new Cube();
+  trunk.textureNum = -2;
+  trunk.color = [0.45, 0.25, 0.1, 1.0];
+  trunk.matrix.setTranslate(x, -0.75, z);
+  trunk.matrix.scale(0.4, 2.5, 0.4);
+  trunk.render();
+
+  // LEAVES LAYER 1
+  var leaves1 = new Cube();
+  leaves1.textureNum = -2;
+  leaves1.color = [0.1, 0.6, 0.2, 1.0];
+  leaves1.matrix.setTranslate(x - 1, 1.2, z - 1);
+  leaves1.matrix.scale(2, 1.2, 2);
+  leaves1.render();
+
+  // LEAVES LAYER 2
+  var leaves2 = new Cube();
+  leaves2.textureNum = -2;
+  leaves2.color = [0.1, 0.65, 0.2, 1.0];
+  leaves2.matrix.setTranslate(x - 0.7, 2.2, z - 0.7);
+  leaves2.matrix.scale(1.5, 1.2, 1.5);
+  leaves2.render();
+
+  // TOP
+  var leaves3 = new Cube();
+  leaves3.textureNum = -2;
+  leaves3.color = [0.15, 0.7, 0.25, 1.0];
+  leaves3.matrix.setTranslate(x - 0.4, 3.1, z - 0.4);
+  leaves3.matrix.scale(1, 1, 1);
+  leaves3.render();
 }
