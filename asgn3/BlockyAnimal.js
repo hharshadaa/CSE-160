@@ -53,6 +53,8 @@ let u_GlobalRotateMatrix;
 let u_Sampler0;
 let u_whichTexture;
 
+let g_camera;
+
 
 function setupWebGL(){
     // Retrieve <canvas> element
@@ -291,6 +293,7 @@ function main() {
 
   setupWebGL()
   connectVariablesToGLSL()
+  g_camera = new Camera();
   addActionsForHtmlUI()
 
   initTextures();
@@ -441,19 +444,22 @@ var g_up = [0,1,0];
 
 function renderAllShapes(){
   var startTime = performance.now();
+  gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
+  gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
+  
 
-  var projMat = new Matrix4();
-  projMat.setPerspective(50, 1*canvas.width/canvas.height, 1, 100);
-  gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
+  //var projMat = new Matrix4();
+ // projMat.setPerspective(50, 1*canvas.width/canvas.height, 1, 100);
+ // gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
 
 
-  var viewMat = new Matrix4();
-  viewMat.setLookAt(
-    g_eye[0], g_eye[1], g_eye[2],
-    g_at[0],  g_at[1],  g_at[2],
-    g_up[0],  g_up[1],  g_up[2]
-  );
-  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
+ // var viewMat = new Matrix4();
+ // viewMat.setLookAt(
+ //   g_eye[0], g_eye[1], g_eye[2],
+ //   g_at[0],  g_at[1],  g_at[2],
+ //   g_up[0],  g_up[1],  g_up[2]
+ // );
+ // gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
   var globalRotMat = new Matrix4();
   globalRotMat.rotate(g_globalAngleX, 1, 0, 0);
