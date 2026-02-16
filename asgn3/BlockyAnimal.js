@@ -522,12 +522,12 @@ var g_map = [
 ];
 
 function drawMap() {
-  //var body = new Cube();
+  var body = new Cube();
   for (i = 0; i < 2; i++) {
     for (x = 0; x < 32; x++) {
       for (y = 0; y < 32; y++) {
 
-        var body = new Cube();
+        //var body = new Cube();
 
         body.color = [0.8, 1.0, 1.0, 1.0];
         body.matrix.setTranslate(0, -0.75, 0);
