@@ -23,6 +23,7 @@ var FSHADER_SOURCE = `
   varying vec2 v_UV;
   uniform vec4 u_FragColor;
   uniform sampler2D u_Sampler0;
+  uniform sampler2D u_Sampler1;
   uniform int u_whichTexture;
 
   void main() {
@@ -34,6 +35,9 @@ var FSHADER_SOURCE = `
 
     } else if (u_whichTexture == 0) {
       gl_FragColor = texture2D(u_Sampler0, v_UV); // Use texture0
+
+    } else if (u_whichTexture == 1) {
+    gl_FragColor = texture2D(u_Sampler1, v_UV);  //GRASS
 
     } else {
       gl_FragColor = vec4(1.0, 0.2, 0.2, 1.0); // Error color (reddish)
@@ -51,6 +55,7 @@ let u_ProjectionMatrix;
 let u_ViewMatrix;
 let u_GlobalRotateMatrix;
 let u_Sampler0;
+let u_Sampler1;
 let u_whichTexture;
 
 let g_camera;
@@ -128,6 +133,12 @@ function connectVariablesToGLSL(){
   if (!u_Sampler0) {
     console.log('Failed to get the storage location of u_Sampler0');
     return false;
+  }
+
+  u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
+  if (!u_Sampler1) {
+    console.log('Failed to get the storage location of u_Sampler1');
+    return;
   }
 
   u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
@@ -250,16 +261,21 @@ function addActionsForHtmlUI () {
 }
 
 function initTextures() {
-  var image = new Image();
-  if (!image) {
-    console.log('Failed to create the image object');
-    return false;
-  }
 
-  image.onload = function() {
-    sendTEXTURE0(image);
+  // SKY (texture 0)
+  var image0 = new Image();
+  image0.onload = function() {
+    sendTEXTURE0(image0);
   };
-  image.src = 'sky.jpg';
+  image0.src = 'sky.jpg';
+
+  // GRASS (texture 1)
+  var image1 = new Image();
+  image1.onload = function() {
+    sendTEXTURE1(image1);
+  };
+  image1.src = 'grass.jpg';
+
   return true;
 }
 
@@ -287,7 +303,33 @@ function sendTEXTURE0(  image) {
   console.log('finished loadTexture');
 }
 
+function sendTEXTURE1(image) {
 
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create texture1');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+
+  gl.uniform1i(u_Sampler1, 1); 
+  console.log('finished loadTexture1');
+}
 
 function main() {
 
@@ -497,6 +539,15 @@ function renderAllShapes(){
 
   //drawTriangle3D([-1.0,0.0,0.0,  -0.5,-1.0,0.0,  0.0,0.0,0.0]);
  // var len = g_shapesList.length;
+
+ // Draw the floor
+var body = new Cube();
+body.color = [1.0, 0.0, 0.0, 1.0];
+body.textureNum = 1;
+body.matrix.translate(0, -0.75, 0.0);
+body.matrix.scale(10, 0, 10);
+body.matrix.translate(-0.5, 0, -0.5);
+body.render();
 
 
 var body = new Cube();
