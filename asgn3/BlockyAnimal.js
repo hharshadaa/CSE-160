@@ -620,7 +620,7 @@ function initMap() {
   for (let x = 0; x < 32; x++) {
     g_map[x] = [];
     for (let z = 0; z < 32; z++) {
-      g_map[x][z] = 0; // height at each tile
+      g_map[x][z] = 0; 
     }
   }
 }
@@ -630,9 +630,7 @@ function drawMap() {
   for (let x = 0; x < 32; x++) {
     for (let z = 0; z < 32; z++) {
 
-      // ===============================
-      // PLAYER PLACED BLOCKS
-      // ===============================
+  
       let height = g_map[x][z];
 
       for (let h = 0; h < height; h++) {
@@ -645,10 +643,6 @@ function drawMap() {
         block.renderfaster();
       }
 
-      // ===============================
-      // 7x7 CENTER BORDER (3 tall)
-      // ===============================
-
       let inCenterRange =
         x >= 13 && x <= 19 &&
         z >= 13 && z <= 19;
@@ -659,20 +653,20 @@ function drawMap() {
 
       if (isBorder) {
 
-        // Middle tile of each wall (center = 16)
+      
         let isMiddleTile =
           (x === 16 && (z === 13 || z === 19)) ||
           (z === 16 && (x === 13 || x === 19));
 
         for (let h = 0; h < 3; h++) {
 
-          // Remove height 0 and 1 (keep only top block)
+
           if (isMiddleTile && (h === 0 || h === 1)) {
             continue;
           }
 
           let wall = new Cube();
-          wall.textureNum = 2; // dirt texture
+          wall.textureNum = 2; 
 
           wall.matrix.setTranslate(x - 16, h - 0.65, z - 16);
           wall.render();
@@ -691,13 +685,10 @@ function getFrontTile() {
 
   let dirX = at[0] - eye[0];
   let dirZ = at[2] - eye[2];
-
-  // normalize direction
   let length = Math.sqrt(dirX*dirX + dirZ*dirZ);
   dirX /= length;
   dirZ /= length;
 
-  // one block in front
   let frontX = Math.floor(eye[0] + dirX + 16);
   let frontZ = Math.floor(eye[2] + dirZ + 16);
 
@@ -713,7 +704,7 @@ function onMove(ev) {
 
   let dx = ev.clientX - g_lastMouseX;
 
-  let sensitivity = 0.3;   // Adjust this to taste
+  let sensitivity = 0.3;
   let angle = dx * sensitivity;
 
   g_camera.panRight(angle);
@@ -980,19 +971,6 @@ drawTree(-12, 3);
 
 
 
-// ==========================
-// WATER POND
-// ==========================
-
-
-
-
- //var yellow = new Cube();
- //yellow.color = [1,1,0,1];
-// yellow.matrix.setTranslate(0, -.5, 0.0);
-// yellow.matrix.rotate(-5, 1, 0, 0);
-// yellow.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-
  //if (g_yellowAnimation) {
  //yellow.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
  //} else {
@@ -1031,7 +1009,7 @@ function sendTextToHTML(text, htmlID) {
 
 function drawTree(x, z) {
 
-  // TRUNK
+
   var trunk = new Cube();
   trunk.textureNum = -2;
   trunk.color = [0.45, 0.25, 0.1, 1.0];
@@ -1039,7 +1017,7 @@ function drawTree(x, z) {
   trunk.matrix.scale(0.4, 2.5, 0.4);
   trunk.render();
 
-  // LEAVES LAYER 1
+
   var leaves1 = new Cube();
   leaves1.textureNum = -2;
   leaves1.color = [0.1, 0.6, 0.2, 1.0];
@@ -1047,7 +1025,7 @@ function drawTree(x, z) {
   leaves1.matrix.scale(2, 1.2, 2);
   leaves1.render();
 
-  // LEAVES LAYER 2
+
   var leaves2 = new Cube();
   leaves2.textureNum = -2;
   leaves2.color = [0.1, 0.65, 0.2, 1.0];
@@ -1055,7 +1033,7 @@ function drawTree(x, z) {
   leaves2.matrix.scale(1.5, 1.2, 1.5);
   leaves2.render();
 
-  // TOP
+
   var leaves3 = new Cube();
   leaves3.textureNum = -2;
   leaves3.color = [0.15, 0.7, 0.25, 1.0];

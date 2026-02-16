@@ -103,10 +103,8 @@ class Cube{
   }
 
   renderfaster() {
-    var rgba = this.color;
 
     gl.uniform1i(u_whichTexture, this.textureNum);
-    gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);
     gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
 
     if (g_vertexBuffer == null) {
@@ -120,8 +118,9 @@ class Cube{
       this.cubeVerts32,
       gl.DYNAMIC_DRAW
     );
-  
-    gl.disableVertexAttribArray(a_UV); 
+
+    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_Position);
 
     gl.drawArrays(gl.TRIANGLES, 0, 36);
   }
