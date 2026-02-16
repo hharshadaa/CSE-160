@@ -549,6 +549,14 @@ body.matrix.scale(10, 0, 10);
 body.matrix.translate(-0.5, 0, -0.5);
 body.render();
 
+//sky
+var sky = new Cube();
+sky.color = [1.0, 0.0, 0.0, 1.0];
+sky.textureNum = 0;
+sky.matrix.scale(50, 50, 50);
+sky.matrix.translate(-0.5, -0.5, -0.5);
+sky.render();
+
 
 var body = new Cube();
 body.color = [0.6, 0.9, 0.4, 1.0];
