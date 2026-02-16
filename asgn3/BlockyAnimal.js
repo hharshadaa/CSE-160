@@ -344,15 +344,8 @@ function main() {
 
   
   canvas.onmousedown = function(ev) {
-      if (ev.shiftKey) {
-      g_pokeAnimation = true;
-      g_pokeStartTime = g_seconds;
-      return;
-    }
-
-    g_mouseDragging = true;
-    g_lastMouseX = ev.clientX;
-    g_lastMouseY = ev.clientY;
+  g_mouseDragging = true;
+  g_lastMouseX = ev.clientX;
   };
 
   canvas.onmouseup = function() {
@@ -363,18 +356,9 @@ function main() {
     g_mouseDragging = false;
   };
 
-  canvas.onmousemove = function(ev) {
-    if (!g_mouseDragging) return;
+  canvas.onmousemove = onMove;
 
-    let dx = ev.clientX - g_lastMouseX;
-    let dy = ev.clientY - g_lastMouseY;
-
-    g_globalAngleY += dx * 0.5;
-    g_globalAngleX += dy * 0.5;
-
-    g_lastMouseX = ev.clientX;
-    g_lastMouseY = ev.clientY;
-  };
+ 
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -539,6 +523,21 @@ function drawMap() {
     }
   }
 }
+
+function onMove(ev) {
+  if (!g_mouseDragging) return;
+
+  let dx = ev.clientX - g_lastMouseX;
+
+  let sensitivity = 0.3;   // Adjust this to taste
+  let angle = dx * sensitivity;
+
+  g_camera.panRight(angle);
+
+  g_lastMouseX = ev.clientX;
+}
+
+
 function renderAllShapes(){
   var startTime = performance.now();
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
@@ -560,8 +559,8 @@ function renderAllShapes(){
  // gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
   var globalRotMat = new Matrix4();
-  globalRotMat.rotate(g_globalAngleX, 1, 0, 0);
-  globalRotMat.rotate(g_globalAngleY, 0, 1, 0);
+  //globalRotMat.rotate(g_globalAngleX, 1, 0, 0);
+  //globalRotMat.rotate(g_globalAngleY, 0, 1, 0);
 
   gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
   
