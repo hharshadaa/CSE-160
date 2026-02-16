@@ -509,10 +509,38 @@ var g_eye = [0,0,3];
 var g_at = [0,0,-100];
 var g_up = [0,1,0];
 
+
+var g_map = [
+  [1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+];
+
+function drawMap() {
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      if (g_map[x][y] == 1) {
+        let block = new Cube();
+        block.color = [1.0, 1.0, 1.0, 1.0];
+        block.textureNum = -2;
+        block.matrix.translate(x - 4, -0.75, y - 4);
+        block.matrix.scale(1, 1, 1);
+        block.render();
+      }
+    }
+  }
+}
+
 function renderAllShapes(){
   var startTime = performance.now();
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
+  
   
 
   //var projMat = new Matrix4();
@@ -539,6 +567,7 @@ function renderAllShapes(){
 
   //drawTriangle3D([-1.0,0.0,0.0,  -0.5,-1.0,0.0,  0.0,0.0,0.0]);
  // var len = g_shapesList.length;
+ drawMap();
 
  // Draw the floor
 var body = new Cube();
