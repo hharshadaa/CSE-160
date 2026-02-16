@@ -1,62 +1,41 @@
 // ColoredPoint.js (c) 2012 matsuda
 // Vertex shader program
-// Vertex shader
+
+console.log("ASGN3 BLOCKY JS IS RUNNING");
+
+
 var VSHADER_SOURCE =`
-  precision mediump float;
   attribute vec4 a_Position;
   attribute vec2 a_UV;
   varying vec2 v_UV;
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_GlobalRotateMatrix;
-  uniform mat4 u_ViewMatrix;
-  uniform mat4 u_ProjectionMatrix;
-  void main() {
-    gl_Position =
-      u_ProjectionMatrix *
-      u_ViewMatrix *
-      u_GlobalRotateMatrix *
-      u_ModelMatrix *
-      a_Position;
 
+  void main() {
+    gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
   }`
 
-
+  
+// Fragment shader program
 var FSHADER_SOURCE = `
   precision mediump float;
   varying vec2 v_UV;
-  uniform vec4 u_FragColor;
-  uniform sampler2D u_Sampler0;
-  uniform int u_whichTexture;
-
+  uniform vec4 u_FragColor; // uniform変数
   void main() {
+    gl_FragColor = u_FragColor;
+    gl_FragColor = vec4(v_UV, 1.0, 1.0);
 
-    if (u_whichTexture == -2) {
-      gl_FragColor = u_FragColor; // Use color
-
-    } else if (u_whichTexture == -1) {
-      gl_FragColor = vec4(v_UV, 1.0,1.0); // Use UV debug color
-
-    } else if (u_whichTexture == 0) {
-      gl_FragColor = texture2D(u_Sampler0, v_UV); // Use texture0
-
-    } else {
-      gl_FragColor = vec4(1, 0.2, 0.2, 1); // Error, put red
-    }
   }`
 
 let canvas;
 let gl;
-let a_Position;
 let a_UV;
+let a_Position;
 let u_FragColor;
 let u_Size;
 let u_ModelMatrix;
-let u_whichTexture;
-let u_ProjectionMatrix;
-let u_ViewMatrix;
 let u_GlobalRotateMatrix;
-let u_Sampler0;
 
 
 
@@ -102,43 +81,19 @@ function connectVariablesToGLSL(){
   }
 
   u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
-if (!u_ModelMatrix) {
-  console.log('Failed to get the storage location of u_ModelMatrix');
-  return;
-}
+  if (!u_ModelMatrix) {
+    console.log('Failed to get the storage location of u_ModelMatrix');
+    return;
+  }
 
-u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
-if (!u_GlobalRotateMatrix) {
-  console.log('Failed to get the storage location of u_GlobalRotateMatrix');
-  return;
-}
+  u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
+  if (!u_GlobalRotateMatrix) {
+    console.log('Failed to get the storage location of u_GlobalRotateMatrix');
+    return;
+  }
 
-u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
-if (!u_ViewMatrix) {
-  console.log('Failed to get u_ViewMatrix');
-  return;
-}
-
-u_ProjectionMatrix = gl.getUniformLocation(gl.program, 'u_ProjectionMatrix');
-if (!u_ProjectionMatrix) {
-  console.log('Failed to get u_ProjectionMatrix');
-  return;
-}
-
-u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
-if (!u_Sampler0) {
-  console.log('Failed to get the storage location of u_Sampler0');
-  return false;
-}
-
-u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
-if (!u_whichTexture) {
-  console.log('Failed to get the storage location of u_whichTexture');
-  return;
-}
-
-var identityM = new Matrix4();
-gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
+  var identityM = new Matrix4();
+  gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
 
 
  // u_Size = gl.getUniformLocation(gl.program, 'u_Size');
@@ -255,51 +210,46 @@ function addActionsForHtmlUI () {
 
 }
 
-function initTextures() {
-  var image = new Image();
-  if (!image) {
-    console.log('Failed to create the image object');
-    return false;
-  }
-
-  image.onload = function() { sendTextToTEXTURE0(image);};
-  image.src = 'sky2.jpg';
-
-  return true;
-}
-
-function sendTextToTEXTURE0(image) {
-  var texture = gl.createTexture();
-  if (!texture) {
-    console.log('Failed to create the texture object');
-    return false;
-  }
-  
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGB,
-    gl.RGB,
-    gl.UNSIGNED_BYTE,
-    image
-  );
-  gl.uniform1i(u_Sampler0, 0);
-
-  console.log('finished loadTexture');
-}
-
-
 
 function main() {
+
   setupWebGL()
   connectVariablesToGLSL()
   addActionsForHtmlUI()
-  initTextures();
 
+  
+  canvas.onmousedown = function(ev) {
+      if (ev.shiftKey) {
+      g_pokeAnimation = true;
+      g_pokeStartTime = g_seconds;
+      return;
+    }
+
+    g_mouseDragging = true;
+    g_lastMouseX = ev.clientX;
+    g_lastMouseY = ev.clientY;
+  };
+
+  canvas.onmouseup = function() {
+    g_mouseDragging = false;
+  };
+
+  canvas.onmouseleave = function() {
+    g_mouseDragging = false;
+  };
+
+  canvas.onmousemove = function(ev) {
+    if (!g_mouseDragging) return;
+
+    let dx = ev.clientX - g_lastMouseX;
+    let dy = ev.clientY - g_lastMouseY;
+
+    g_globalAngleY += dx * 0.5;
+    g_globalAngleX += dy * 0.5;
+
+    g_lastMouseX = ev.clientX;
+    g_lastMouseY = ev.clientY;
+  };
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -407,29 +357,13 @@ if (g_pokeAnimation) {
 
 }
 
-var g_eye = [0,0,3];
-var g_at = [0,0,-100];
-var g_up = [0,1,0];
-
 function renderAllShapes(){
   var startTime = performance.now();
 
-  //2 * canvas.width/canvas.height change aspect ratio
-  var projMat = new Matrix4();
-  projMat.setPerspective(50, 1*canvas.width/canvas.height, 1, 100); //change degree smaller narrow
-  gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
+  var globalRotMat = new Matrix4();
+  globalRotMat.rotate(g_globalAngleX, 1, 0, 0);
+  globalRotMat.rotate(g_globalAngleY, 0, 1, 0);
 
-    //change 3 to 4 movews backwards
-  //0,0,3 the first 0 moves x val
-  var viewMat = new Matrix4();
-  viewMat.setLookAt(
-  g_eye[0], g_eye[1], g_eye[2],
-  g_at[0],  g_at[1],  g_at[2],
-  g_up[0],  g_up[1],  g_up[2]
-  );
-  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
-
-  var globalRotMat = new Matrix4().rotate(g_globalAngle,0,1,0);
   gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
   
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -441,7 +375,6 @@ function renderAllShapes(){
 
 var body = new Cube();
 body.color = [0.6, 0.9, 0.4, 1.0];
-body.textureNum = 0;
 body.matrix.translate(-0.4 + g_bodyOffset, -0.3, -0.5);
 body.matrix.rotate(-30, 1, 0, 0);
 body.matrix.scale(0.8, 0.2, 0.9);

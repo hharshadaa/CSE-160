@@ -7,6 +7,8 @@ class Circle{
     this.segments = 10;
   }
 
+  
+
   render() {
     var xy = this.position;
     var rgba = this.color;
