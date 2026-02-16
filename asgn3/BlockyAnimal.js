@@ -25,6 +25,7 @@ var FSHADER_SOURCE = `
   uniform sampler2D u_Sampler0;
   uniform sampler2D u_Sampler1;
   uniform sampler2D u_Sampler2;
+  uniform sampler2D u_Sampler3;
   uniform int u_whichTexture;
 
   void main() {
@@ -43,6 +44,9 @@ var FSHADER_SOURCE = `
 
     } else if (u_whichTexture == 2) {
       gl_FragColor = texture2D(u_Sampler2, v_UV);
+    
+    } else if (u_whichTexture == 3) {
+    gl_FragColor = texture2D(u_Sampler3, v_UV);
 
     } else {
       gl_FragColor = vec4(1.0, 0.2, 0.2, 1.0);
@@ -62,6 +66,7 @@ let u_GlobalRotateMatrix;
 let u_Sampler0;
 let u_Sampler1;
 let u_Sampler2;
+let u_Sampler3;
 let u_whichTexture;
 
 let g_camera;
@@ -150,6 +155,12 @@ function connectVariablesToGLSL(){
     u_Sampler2 = gl.getUniformLocation(gl.program, 'u_Sampler2');
   if (!u_Sampler2) {
     console.log('Failed to get u_Sampler2');
+    return;
+  }
+
+  u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
+  if (!u_Sampler3) {
+    console.log('Failed to get u_Sampler3');
     return;
   }
 
@@ -296,6 +307,13 @@ function initTextures() {
     };
 image2.src = 'dirt.jpg';
 
+  // EGG (texture 3)
+  var image3 = new Image();
+  image3.onload = function() {
+    sendTEXTURE3(image3);
+  };
+  image3.src = 'egg.jpeg';
+
   return true;
 }
 
@@ -376,6 +394,33 @@ function sendTEXTURE2(image) {
   );
 
   gl.uniform1i(u_Sampler2, 2);
+}
+
+function sendTEXTURE3(image) {
+
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create texture3');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+
+  gl.uniform1i(u_Sampler3, 3);
 }
 
 
@@ -903,7 +948,7 @@ backRightFin.render();
 
 
 var egg = new Cube();
-egg.textureNum = -2;
+egg.textureNum = 3;
 egg.color = [1.0, 0.0, 0.0, 1.0];
 
 egg.matrix.setTranslate(0.85, -0.45, .6);
@@ -912,7 +957,7 @@ egg.matrix.scale(0.25, 0.25, 0.25);
 egg.render();
 
 var egg2 = new Cube();
-egg2.textureNum = -2;
+egg2.textureNum = 3;
 egg2.color = [1.0, 1.0, 0.0, 1.0];
 
 egg2.matrix.setTranslate(0.25, -0.45, 1);
