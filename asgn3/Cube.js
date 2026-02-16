@@ -50,15 +50,8 @@ class Cube{
     drawTriangle3D( [1,0,0,  1,1,0,  1,1,1]);
     drawTriangle3D( [1,0,0,  1,1,1,  1,0,1]);
 
-
-
-
-
-
-
-    //other sides of the cube, top bottom left right back
-    //fill this in yourself
-
   }
+
+  
 
 }

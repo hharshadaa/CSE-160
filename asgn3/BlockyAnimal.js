@@ -522,21 +522,23 @@ var g_map = [
 ];
 
 function drawMap() {
-  for (x = 0; x < 32; x++) {
-    for (y = 0; y < 32; y++) {
-      // console.log(x, y);
-      if (x == 0 || x == 31 || y == 0 || y == 31) {
+  //var body = new Cube();
+  for (i = 0; i < 2; i++) {
+    for (x = 0; x < 32; x++) {
+      for (y = 0; y < 32; y++) {
+
         var body = new Cube();
+
         body.color = [0.8, 1.0, 1.0, 1.0];
-        body.matrix.translate(0, -0.75, 0);
-        body.matrix.scale(0.3, 0.3, 0.3);
+        body.matrix.setTranslate(0, -0.75, 0);
+        body.matrix.scale(.4, .4, .4);
         body.matrix.translate(x - 16, 0, y - 16);
         body.render();
+
       }
     }
   }
 }
-
 function renderAllShapes(){
   var startTime = performance.now();
   gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
