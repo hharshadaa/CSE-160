@@ -291,10 +291,12 @@ function sendTEXTURE0(  image) {
 
 function main() {
 
-  setupWebGL()
-  connectVariablesToGLSL()
+  setupWebGL();
+  connectVariablesToGLSL();
   g_camera = new Camera();
-  addActionsForHtmlUI()
+  addActionsForHtmlUI();
+
+  document.onkeydown = keydown;
 
   initTextures();
 
@@ -436,6 +438,17 @@ if (g_pokeAnimation) {
   }
 }
 
+}
+
+function keydown(ev) {
+  if (ev.keyCode == 39) { // Right arrow
+    g_camera.moveRight(0.2);
+  } 
+  else if (ev.keyCode == 37) { // Left arrow
+    g_camera.moveLeft(0.2);
+  }
+
+  renderAllShapes();
 }
 
 var g_eye = [0,0,3];
