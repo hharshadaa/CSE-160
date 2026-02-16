@@ -7,6 +7,56 @@ class Cube{
    // this.segments = 10;
    this.matrix = new Matrix4();
    this.textureNum = -2;
+   this.cubeVerts32 = new Float32Array([
+      // Front
+      0,0,0,  1,1,0,  1,0,0,
+      0,0,0,  0,1,0,  1,1,0,
+
+      // Top
+      0,1,0,  0,1,1,  1,1,1,
+      0,1,0,  1,1,1,  1,1,0,
+
+      // Right
+      1,0,0,  1,1,0,  1,1,1,
+      1,0,0,  1,1,1,  1,0,1,
+
+      // Left
+      0,1,0,  0,1,1,  0,0,0,
+      0,0,0,  0,1,1,  0,0,1,
+
+      // Bottom
+      0,0,0,  0,0,1,  1,0,1,
+      0,0,0,  1,0,1,  1,0,0,
+
+      // Back
+      0,0,1,  1,1,1,  1,0,1,
+      0,0,1,  0,1,1,  1,1,1
+    ]);
+    this.cubeVerts = [
+      // Front
+      0,0,0,  1,1,0,  1,0,0,
+      0,0,0,  0,1,0,  1,1,0,
+
+      // Top
+      0,1,0,  0,1,1,  1,1,1,
+      0,1,0,  1,1,1,  1,1,0,
+
+      // Right
+      1,0,0,  1,1,0,  1,1,1,
+      1,0,0,  1,1,1,  1,0,1,
+
+      // Left
+      0,1,0,  0,1,1,  0,0,0,
+      0,0,0,  0,1,1,  0,0,1,
+
+      // Bottom
+      0,0,0,  0,0,1,  1,0,1,
+      0,0,0,  1,0,1,  1,0,0,
+
+      // Back
+      0,0,1,  1,1,1,  1,0,1,
+      0,0,1,  0,1,1,  1,1,1
+    ];
   }
 
   render() {
@@ -52,6 +102,28 @@ class Cube{
 
   }
 
+  renderfaster() {
+    var rgba = this.color;
+
+    gl.uniform1i(u_whichTexture, this.textureNum);
+    gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);
+    gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
+
+    if (g_vertexBuffer == null) {
+      initTriangle3D();
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, g_vertexBuffer);
+
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      this.cubeVerts32,
+      gl.DYNAMIC_DRAW
+    );
   
+    gl.disableVertexAttribArray(a_UV); 
+
+    gl.drawArrays(gl.TRIANGLES, 0, 36);
+  }
 
 }
