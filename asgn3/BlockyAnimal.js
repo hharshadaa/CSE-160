@@ -432,7 +432,16 @@ function main() {
   addActionsForHtmlUI();
 
 
-  document.onkeydown = keydown;
+  //document.onkeydown = keydown;
+    // Make canvas focusable so it can receive keyboard input
+  canvas.tabIndex = 0;
+  canvas.focus();
+
+  // If you click the canvas, re-focus it
+  canvas.addEventListener('mousedown', () => canvas.focus());
+
+  // Listen globally (works even if focus is elsewhere)
+  window.addEventListener('keydown', keydown);
 
   initTextures();
   initMap();
@@ -562,42 +571,29 @@ if (g_pokeAnimation) {
 }
 
 function keydown(ev) {
+  const k = ev.key.toLowerCase();
 
-  if (ev.key === 'w' || ev.key === 'W') {
-    g_camera.moveForward();
-  }
-  else if (ev.key === 's' || ev.key === 'S') {
-    g_camera.moveBackwards();
-  }
-  else if (ev.key === 'a' || ev.key === 'A') {
-    g_camera.moveLeft();
-  }
-  else if (ev.key === 'd' || ev.key === 'D') {
-    g_camera.moveRight();
-  }
-  else if (ev.key === 'q' || ev.key === 'Q') {
-    g_camera.panLeft();
-  }
-  else if (ev.key === 'e' || ev.key === 'E') {
-    g_camera.panRight();
+  if (k === 'w') g_camera.moveForward();
+  else if (k === 's') g_camera.moveBackwards();
+  else if (k === 'a') g_camera.moveLeft();
+  else if (k === 'd') g_camera.moveRight();
+  else if (k === 'q') g_camera.panLeft();
+  else if (k === 'e') g_camera.panRight();
+
+  else if (k === 'f') {
+  let tile = getFrontTile();
+  console.log("F pressed, tile:", tile);
+  if (tile) g_map[tile[0]][tile[1]] += 1;
   }
 
-    else if (ev.key === 'f' || ev.key === 'F') {
+  else if (k === 'g') {
     let tile = getFrontTile();
-    if (tile) {
-      g_map[tile[0]][tile[1]] += 1;
-    }
-  }
-
-  else if (ev.key === 'g' || ev.key === 'G') {
-    let tile = getFrontTile();
-    if (tile && g_map[tile[0]][tile[1]] > 0) {
-      g_map[tile[0]][tile[1]] -= 1;
-    }
+    if (tile && g_map[tile[0]][tile[1]] > 0) g_map[tile[0]][tile[1]] -= 1;
   }
 
   renderAllShapes();
 }
+
 var g_eye = [0,0,3];
 var g_at = [0,0,-100];
 var g_up = [0,1,0];
@@ -639,8 +635,13 @@ function drawMap() {
         block.textureNum = -2;
         block.color = [0.5, 0.3, 0.1, 1.0];
 
-        block.matrix.setTranslate(x - 16, h - 0.65, z - 16);
-        block.renderfaster();
+        let floorTop = -0.70; 
+        block.matrix.setTranslate(
+          x - 16,
+          floorTop + h,
+          z - 16
+        );
+        block.render();
       }
 
       let inCenterRange =
@@ -685,12 +686,19 @@ function getFrontTile() {
 
   let dirX = at[0] - eye[0];
   let dirZ = at[2] - eye[2];
+
   let length = Math.sqrt(dirX*dirX + dirZ*dirZ);
+  if (length === 0) return null;
+
   dirX /= length;
   dirZ /= length;
 
-  let frontX = Math.floor(eye[0] + dirX + 16);
-  let frontZ = Math.floor(eye[2] + dirZ + 16);
+  // 1 block forward
+  let frontWorldX = eye[0] + dirX;
+  let frontWorldZ = eye[2] + dirZ;
+
+  let frontX = Math.floor(frontWorldX + 16);
+  let frontZ = Math.floor(frontWorldZ + 16);
 
   if (frontX < 0 || frontX >= 32 || frontZ < 0 || frontZ >= 32) {
     return null;
