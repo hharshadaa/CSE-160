@@ -1,0 +1,1044 @@
+// ColoredPoint.js (c) 2012 matsuda
+// Vertex shader program
+
+
+var VSHADER_SOURCE =`
+  attribute vec4 a_Position;
+  attribute vec2 a_UV;
+  varying vec2 v_UV;
+  uniform mat4 u_ModelMatrix;
+  uniform mat4 u_GlobalRotateMatrix;
+  uniform mat4 u_ViewMatrix;
+  uniform mat4 u_ProjectionMatrix;
+
+  void main() {
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
+    v_UV = a_UV;
+  }`
+
+  
+// Fragment shader program
+var FSHADER_SOURCE = `
+  precision mediump float;
+  varying vec2 v_UV;
+  uniform vec4 u_FragColor;
+  uniform sampler2D u_Sampler0;
+  uniform sampler2D u_Sampler1;
+  uniform sampler2D u_Sampler2;
+  uniform sampler2D u_Sampler3;
+  uniform int u_whichTexture;
+
+  void main() {
+
+    if (u_whichTexture == -2) {
+      gl_FragColor = u_FragColor;
+
+    } else if (u_whichTexture == -1) {
+      gl_FragColor = vec4(v_UV, 1.0, 1.0);
+
+    } else if (u_whichTexture == 0) {
+      gl_FragColor = texture2D(u_Sampler0, v_UV);
+
+    } else if (u_whichTexture == 1) {
+      gl_FragColor = texture2D(u_Sampler1, v_UV);
+
+    } else if (u_whichTexture == 2) {
+      gl_FragColor = texture2D(u_Sampler2, v_UV);
+    
+    } else if (u_whichTexture == 3) {
+    gl_FragColor = texture2D(u_Sampler3, v_UV);
+
+    } else {
+      gl_FragColor = vec4(1.0, 0.2, 0.2, 1.0);
+    }
+  }`
+
+let canvas;
+let gl;
+let a_UV;
+let a_Position;
+let u_FragColor;
+let u_Size;
+let u_ModelMatrix;
+let u_ProjectionMatrix;
+let u_ViewMatrix;
+let u_GlobalRotateMatrix;
+let u_Sampler0;
+let u_Sampler1;
+let u_Sampler2;
+let u_Sampler3;
+let u_whichTexture;
+
+let g_camera;
+
+
+function setupWebGL(){
+    // Retrieve <canvas> element
+  canvas = document.getElementById('webgl');
+
+  // Get the rendering context for WebGL
+  //gl = getWebGLContext(canvas);
+  gl = canvas.getContext("webgl", { preserveDrawingBuffer: true});
+  if (!gl) {
+    console.log('Failed to get the rendering context for WebGL');
+    return;
+  }
+  gl.enable(gl.DEPTH_TEST);
+}
+
+function connectVariablesToGLSL(){
+  // Initialize shaders
+  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+    console.log('Failed to intialize shaders.');
+    return;
+  }
+
+  // // Get the storage location of a_Position
+  a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  if (a_Position < 0) {
+    console.log('Failed to get the storage location of a_Position');
+    return;
+  }
+
+  a_UV = gl.getAttribLocation(gl.program, 'a_UV');
+  if (a_UV < 0) {
+    console.log('Failed to get the storage location of a_UV');
+    return;
+  }
+  
+
+  // Get the storage location of u_FragColor
+  u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
+  if (!u_FragColor) {
+    console.log('Failed to get the storage location of u_FragColor');
+    return;
+  }
+
+  u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+  if (!u_ModelMatrix) {
+    console.log('Failed to get the storage location of u_ModelMatrix');
+    return;
+  }
+
+  u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
+  if (!u_GlobalRotateMatrix) {
+    console.log('Failed to get the storage location of u_GlobalRotateMatrix');
+    return;
+  }
+
+  u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
+  if (!u_ViewMatrix) {
+    console.log('Failed to get the storage location of u_ViewMatrix');
+    return;
+  }
+
+  u_ProjectionMatrix = gl.getUniformLocation(gl.program, 'u_ProjectionMatrix');
+  if (!u_ProjectionMatrix) {
+    console.log('Failed to get the storage location of u_ProjectionMatrix');
+    return;
+  }
+
+
+
+   u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
+  if (!u_Sampler0) {
+    console.log('Failed to get the storage location of u_Sampler0');
+    return false;
+  }
+
+  u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
+  if (!u_Sampler1) {
+    console.log('Failed to get the storage location of u_Sampler1');
+    return;
+  }
+
+    u_Sampler2 = gl.getUniformLocation(gl.program, 'u_Sampler2');
+  if (!u_Sampler2) {
+    console.log('Failed to get u_Sampler2');
+    return;
+  }
+
+  u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
+  if (!u_Sampler3) {
+    console.log('Failed to get u_Sampler3');
+    return;
+  }
+
+  u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
+  if (!u_whichTexture) {
+    console.log('Failed to get the storage location of u_whichTexture');
+    return;
+  }
+
+  var identityM = new Matrix4();
+  gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
+
+
+ // u_Size = gl.getUniformLocation(gl.program, 'u_Size');
+  //if (!u_Size) {
+   // console.log('Failed to get the storage location of u_Size');
+    //return;
+ // }
+
+}
+const POINT = 0;
+const TRIANGLE = 1;
+const CIRCLE = 2;
+//globals for UI
+let g_selectedColor = [1.0,1.0,1.0,1.0];
+let g_selectedSize = 5;
+let g_selectedType=POINT;
+let g_globalAngle = 0;
+let g_globalAngleX = 0; 
+let g_globalAngleY = 0; 
+let g_mouseDragging = false;
+let g_lastMouseX = 0;
+let g_lastMouseY = 0;
+
+
+//let g_yellowAngle = 0;
+//let g_magentaAngle = 0;
+//let g_yellowAnimation = false;
+//let g_magentaAnimation = false;
+
+let g_bodyOffset = 0;
+let g_bodyAnimation = false;
+
+
+//back fins
+let g_backLeftFinAngle = 0;
+let g_backRightFinAngle = 0;
+let g_backLeftFinAnimation = false;
+let g_backRightFinAnimation = false;
+
+
+//front finleft
+let g_frontLeftFinAngle1 = 0;
+let g_frontLeftFinAngle2 = 0;
+let g_frontLeftFinAngle3 = 0;
+
+// Front right fin joints
+let g_frontRightFinAngle1 = 0;
+let g_frontRightFinAngle2 = 0;
+let g_frontRightFinAngle3 = 0;
+
+let g_frontLeftFinAnim1 = false;
+let g_frontRightFinAnim1 = false;
+
+let g_pokeAnimation = false;
+let g_pokeStartTime = 0;
+let g_headPokeAngle = 0;
+
+
+
+
+
+
+
+function addActionsForHtmlUI () {
+
+  document.getElementById('animationMagentaOnButton').onclick = function() {g_magentaAnimation=true;};
+  document.getElementById('animationMagentaOffButton').onclick = function() {g_magentaAnimation=false;};
+
+  document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation=true;};
+  document.getElementById('animationYellowOffButton').onclick = function() {g_yellowAnimation=false;};
+
+  document.getElementById('yellowSlide').addEventListener('input', function() {g_yellowAngle = this.value; renderAllShapes(); });
+  document.getElementById('magentaSlide').addEventListener('input', function() {g_magentaAngle = this.value; renderAllShapes(); });
+
+  document.getElementById('angleSlide').addEventListener('input', function() {g_globalAngle = this.value; renderAllShapes(); });
+
+
+  //turtle left right back leg
+  document.getElementById('bodyAnimOnButton').onclick  = function() {g_bodyAnimation = true;};
+  document.getElementById('bodyAnimOffButton').onclick = function() {g_bodyAnimation = false;};
+
+  document.getElementById('backLeftFinSlide').addEventListener('input', function () {g_backLeftFinAngle = this.value;renderAllShapes();});
+  document.getElementById('backRightFinSlide').addEventListener('input', function () {g_backRightFinAngle = this.value; renderAllShapes();});
+  document.getElementById('backLeftFinAnimOnButton').onclick = function() {g_backLeftFinAnimation = true;};
+  document.getElementById('backLeftFinAnimOffButton').onclick = function() {g_backLeftFinAnimation = false;};
+  document.getElementById('backRightFinAnimOnButton').onclick = function() {g_backRightFinAnimation = true;};
+  document.getElementById('backRightFinAnimOffButton').onclick = function() {g_backRightFinAnimation = false;};
+
+
+
+
+
+  //front left fin
+  document.getElementById('frontLeftFin1Slide').addEventListener('input', function () {g_frontLeftFinAngle1 = this.value; renderAllShapes();});
+  document.getElementById('frontLeftFin2Slide').addEventListener('input', function () {g_frontLeftFinAngle2 = this.value;renderAllShapes();});
+  document.getElementById('frontLeftFin3Slide').addEventListener('input', function () {g_frontLeftFinAngle3 = this.value;renderAllShapes();});
+
+  //froont right fin
+  document.getElementById('frontRightFin1Slide').addEventListener('input', function () {g_frontRightFinAngle1 = this.value;renderAllShapes();});
+
+  document.getElementById('frontRightFin2Slide').addEventListener('input', function () {g_frontRightFinAngle2 = this.value;renderAllShapes();});
+
+  document.getElementById('frontRightFin3Slide').addEventListener('input', function () {g_frontRightFinAngle3 = this.value;renderAllShapes();});
+
+  document.getElementById('frontLeftFinAnimOnButton').onclick  = function() {g_frontLeftFinAnim1 = true;};
+  document.getElementById('frontLeftFinAnimOffButton').onclick = function() { g_frontLeftFinAnim1 = false;};
+  document.getElementById('frontRightFinAnimOnButton').onclick  = function() {g_frontRightFinAnim1 = true;};
+  document.getElementById('frontRightFinAnimOffButton').onclick = function() {g_frontRightFinAnim1 = false;};
+
+}
+
+function initTextures() {
+
+  // SKY (texture 0)
+  var image0 = new Image();
+  image0.onload = function() {
+    sendTEXTURE0(image0);
+  };
+  image0.src = 'sky.jpg';
+
+  // GRASS (texture 1)
+  var image1 = new Image();
+  image1.onload = function() {
+    sendTEXTURE1(image1);
+  };
+  image1.src = 'grass.jpg';
+
+  // DIRT (texture 2)
+    var image2 = new Image();
+    image2.onload = function() {
+      sendTEXTURE2(image2);
+
+    };
+image2.src = 'dirt.jpg';
+
+  // EGG (texture 3)
+  var image3 = new Image();
+  image3.onload = function() {
+    sendTEXTURE3(image3);
+  };
+  image3.src = 'egg.jpeg';
+
+  return true;
+}
+
+function sendTEXTURE0(  image) {
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create the texture object');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+  gl.uniform1i(u_Sampler0, 0);
+  console.log('finished loadTexture');
+}
+
+function sendTEXTURE1(image) {
+
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create texture1');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+
+  gl.uniform1i(u_Sampler1, 1); 
+  console.log('finished loadTexture1');
+}
+
+function sendTEXTURE2(image) {
+
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create texture2');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+
+  gl.uniform1i(u_Sampler2, 2);
+}
+
+function sendTEXTURE3(image) {
+
+  var texture = gl.createTexture();
+  if (!texture) {
+    console.log('Failed to create texture3');
+    return false;
+  }
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGB,
+    gl.RGB,
+    gl.UNSIGNED_BYTE,
+    image
+  );
+
+  gl.uniform1i(u_Sampler3, 3);
+}
+
+
+function main() {
+
+  setupWebGL();
+  connectVariablesToGLSL();
+  g_camera = new Camera();
+  addActionsForHtmlUI();
+
+
+  //document.onkeydown = keydown;
+    // Make canvas focusable so it can receive keyboard input
+  canvas.tabIndex = 0;
+  canvas.focus();
+
+  // If you click the canvas, re-focus it
+  canvas.addEventListener('mousedown', () => canvas.focus());
+
+  // Listen globally (works even if focus is elsewhere)
+  window.addEventListener('keydown', keydown);
+
+  initTextures();
+  initMap();
+
+  
+  canvas.onmousedown = function(ev) {
+  g_mouseDragging = true;
+  g_lastMouseX = ev.clientX;
+  };
+
+  canvas.onmouseup = function() {
+    g_mouseDragging = false;
+  };
+
+  canvas.onmouseleave = function() {
+    g_mouseDragging = false;
+  };
+
+  canvas.onmousemove = onMove;
+
+ 
+
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+  requestAnimationFrame(tick);
+}
+
+var g_startTime = performance.now()/1000.0;
+var g_seconds = performance.now()/1000.0-g_startTime;
+
+
+
+
+
+function tick() {
+  g_seconds = performance.now()/1000.0-g_startTime;
+  updateAnimationAngles();
+  //console.log(g_seconds);
+  renderAllShapes();
+  requestAnimationFrame(tick);
+}
+
+
+
+var g_shapesList = [];
+
+//var g_points = [];  // The array for the position of a mouse press
+//var g_colors = [];  // The array to store the color of a point
+//var g_sizes = [];
+
+
+function click(ev) {
+   if (ev.shiftKey) {
+    g_pokeAnimation = true;
+    g_pokeStartTime = g_seconds;
+    return;
+  }
+  
+  
+  let [x,y] = convertCoordinatesEventToGL(ev);
+  // Store the coordinates to g_points array
+ // g_points.push([x, y]);
+  
+  let point;
+  if (g_selectedType===POINT) {
+    point = new Point();
+  } else if (g_selectedType===TRIANGLE) {
+    point = new Triangle();
+  } else {
+    point = new Circle();
+  }
+  
+  point.position=[x,y];
+  point.color = g_selectedColor.slice();
+  point.size = g_selectedSize;
+  g_shapesList.push(point);
+
+  renderAllShapes();
+}
+
+function convertCoordinatesEventToGL(ev) {
+  var x = ev.clientX; 
+  var y = ev.clientY;
+  var rect = ev.target.getBoundingClientRect();
+
+  x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
+  y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
+
+  return([x,y]);
+}
+
+function updateAnimationAngles() {
+  if (g_bodyAnimation) {
+  g_bodyOffset = 0.06 * Math.sin(g_seconds * 2);
+} else {
+  g_bodyOffset = 0;
+}
+
+  if (g_backLeftFinAnimation) {
+  g_backLeftFinAngle = 3 * Math.sin(g_seconds * 3);
+}
+
+  if (g_backRightFinAnimation) {
+    g_backRightFinAngle = 3 * Math.sin(g_seconds * 3);
+  }
+
+  if (g_frontLeftFinAnim1) {
+  g_frontLeftFinAngle1 = 3 * Math.sin(g_seconds * 3);
+}
+
+if (g_frontRightFinAnim1) {
+  g_frontRightFinAngle1 = 3 * Math.sin(g_seconds * 3);
+}
+
+
+if (g_pokeAnimation) {
+  let t = g_seconds - g_pokeStartTime;
+
+  g_headPokeAngle = 20 * Math.sin(t * 8);
+
+  if (t > 0.6) {
+    g_pokeAnimation = false;
+    g_headPokeAngle = 0;
+  }
+}
+
+}
+
+function keydown(ev) {
+  const k = ev.key.toLowerCase();
+
+  if (k === 'w') g_camera.moveForward();
+  else if (k === 's') g_camera.moveBackwards();
+  else if (k === 'a') g_camera.moveLeft();
+  else if (k === 'd') g_camera.moveRight();
+  else if (k === 'q') g_camera.panLeft();
+  else if (k === 'e') g_camera.panRight();
+
+  else if (k === 'f') {
+  let tile = getFrontTile();
+  console.log("F pressed, tile:", tile);
+  if (tile) g_map[tile[0]][tile[1]] += 1;
+  }
+
+  else if (k === 'g') {
+    let tile = getFrontTile();
+    if (tile && g_map[tile[0]][tile[1]] > 0) g_map[tile[0]][tile[1]] -= 1;
+  }
+
+  renderAllShapes();
+}
+
+var g_eye = [0,0,3];
+var g_at = [0,0,-100];
+var g_up = [0,1,0];
+
+
+//var g_map = [
+ // [1, 1, 1, 1, 1, 1, 1, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 1, 1, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+ // [1, 0, 0, 1, 0, 0, 0, 1],
+ // [1, 0, 0, 0, 0, 0, 0, 1],
+//];
+
+let g_map = [];
+
+function initMap() {
+  for (let x = 0; x < 32; x++) {
+    g_map[x] = [];
+    for (let z = 0; z < 32; z++) {
+      g_map[x][z] = 0; 
+    }
+  }
+}
+
+function drawMap() {
+
+  for (let x = 0; x < 32; x++) {
+    for (let z = 0; z < 32; z++) {
+
+      let height = g_map[x][z];
+
+      // Player placed blocks
+      for (let h = 0; h < height; h++) {
+
+        let block = new Cube();
+        block.textureNum = -2;
+        block.color = [0.5, 0.3, 0.1, 1.0];
+
+        let floorTop = -0.70;
+
+        block.matrix.setTranslate(
+          x - 16,
+          floorTop + h,
+          z - 16
+        );
+
+        block.render();
+      }
+
+    }
+  }
+}
+
+
+function getFrontTile() {
+
+  let eye = g_camera.eye.elements;
+  let at  = g_camera.at.elements;
+
+  let dirX = at[0] - eye[0];
+  let dirZ = at[2] - eye[2];
+
+  let length = Math.sqrt(dirX*dirX + dirZ*dirZ);
+  if (length === 0) return null;
+
+  dirX /= length;
+  dirZ /= length;
+
+  // 1 block forward
+  let frontWorldX = eye[0] + dirX;
+  let frontWorldZ = eye[2] + dirZ;
+
+  let frontX = Math.floor(frontWorldX + 16);
+  let frontZ = Math.floor(frontWorldZ + 16);
+
+  if (frontX < 0 || frontX >= 32 || frontZ < 0 || frontZ >= 32) {
+    return null;
+  }
+
+  return [frontX, frontZ];
+}
+
+function onMove(ev) {
+  if (!g_mouseDragging) return;
+
+  let dx = ev.clientX - g_lastMouseX;
+
+  let sensitivity = 0.3;
+  let angle = dx * sensitivity;
+
+  g_camera.panRight(angle);
+
+  g_lastMouseX = ev.clientX;
+}
+
+
+
+function renderAllShapes(){
+  var startTime = performance.now();
+  gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
+  gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
+  
+  
+
+  var globalRotMat = new Matrix4();
+
+  gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
+  
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+ drawMap();
+
+ // Draw the floor
+var floor = new Cube();
+floor.textureNum = 1; 
+floor.matrix.setTranslate(-16, -0.75, -16); 
+floor.matrix.scale(32, 0.1, 32);
+floor.render();
+
+//sky
+var sky = new Cube();
+sky.color = [1.0, 0.0, 0.0, 1.0];
+sky.textureNum = 0;
+sky.matrix.scale(50, 50, 50);
+sky.matrix.translate(-0.5, -0.5, -0.5);
+sky.render();
+
+//4.1 test cube
+var testCube = new Cube();
+testCube.color = [0.5, 0.5, 0.5, 1.0];
+testCube.matrix.setTranslate(0, 0, 0);
+testCube.render();
+
+//ROOM-----------------------------------------------------------
+let roomSize = 6.5; 
+let wallHeight = 6.5;
+
+var backWall = new Cube();
+backWall.matrix.setTranslate(-roomSize/2, -0.75, -roomSize/2);
+backWall.matrix.scale(roomSize, wallHeight, 0.2);
+backWall.render();
+
+var frontWall = new Cube();
+frontWall.matrix.setTranslate(-roomSize/2, -0.75, roomSize/2 - 0.2);
+frontWall.matrix.scale(roomSize, wallHeight, 0.2);
+frontWall.render();
+
+var leftWall = new Cube();
+leftWall.matrix.setTranslate(-roomSize/2, -0.75, -roomSize/2);
+leftWall.matrix.scale(0.2, wallHeight, roomSize);
+leftWall.render();
+
+
+var rightWall = new Cube();
+rightWall.matrix.setTranslate(roomSize/2 - 0.2, -0.75, -roomSize/2);
+rightWall.matrix.scale(0.2, wallHeight, roomSize);
+rightWall.render();
+
+
+var ceiling = new Cube();
+ceiling.matrix.setTranslate(-roomSize/2, wallHeight - 0.75, -roomSize/2);
+ceiling.matrix.scale(roomSize, 0.2, roomSize);
+ceiling.render();
+
+//Rooom end================================================
+var body = new Cube();
+body.color = [0.6, 0.9, 0.4, 1.0];
+
+body.matrix.translate(-0.4 + g_bodyOffset, -0.3, -0.5);
+
+body.matrix.scale(0.8, 0.2, 0.9);
+body.matrix.translate(0, 0, 0.15);
+
+body.render();
+
+//3D
+var shellDome = new Sphere();
+shellDome.color = [0.25, 0.4, 0.2, 1.0];
+shellDome.matrix = new Matrix4(body.matrix);
+shellDome.matrix.translate(0.5, 1.7, 0.5);
+shellDome.matrix.scale(0.45, 0.22, 0.50);
+shellDome.render();
+
+
+
+var belly = new Cube();
+belly.color = [0.95, 0.95, 0.75, 1.0];
+belly.matrix = new Matrix4(body.matrix);
+belly.matrix.translate(0, -0.22, 0);
+belly.matrix.scale(1.0, 0.24, 1.0);
+belly.render();
+
+
+var shell = new Cube();
+shell.color = [0.25, 0.35, 0.15, 1.0];
+shell.matrix = new Matrix4(body.matrix);
+shell.matrix.translate(-0.13, 0.99, 0);
+shell.matrix.scale(1.25, .7, 1);
+shell.render();
+
+var head = new Cube();
+head.color = [0.6, 0.9, 0.4, 1.0];
+head.matrix = new Matrix4(body.matrix);
+
+// move to head position
+head.matrix.translate(0.3, 0.07, -0.22);
+
+// pivot for rotation
+head.matrix.translate(0.17, 0.5, 0.16);
+head.matrix.rotate(g_headPokeAngle, 0, 1, 0);
+head.matrix.translate(-0.17, -0.5, -0.16);
+
+head.matrix.scale(0.34, 1.05, 0.32);
+
+head.render();
+
+
+var leftEye = new Cube();
+leftEye.color = [0.0, 0.0, 0.0, 1.0];
+leftEye.matrix = new Matrix4(head.matrix);
+leftEye.matrix.translate(0.1, 0.30, -0.03);
+leftEye.matrix.scale(0.2, 0.12, 0.08);
+leftEye.render();
+
+var rightEye = new Cube();
+rightEye.color = [0.0, 0.0, 0.0, 1.0];
+rightEye.matrix = new Matrix4(head.matrix);
+rightEye.matrix.translate(0.7, 0.30, -0.03);
+rightEye.matrix.scale(0.2, 0.12, 0.08);
+rightEye.render();
+
+//LEFT---------------------------------------------------------------------
+var frontLeftFin = new Cube();
+frontLeftFin.color = [0.6, 0.8, 0.4, 1.0];
+frontLeftFin.matrix = new Matrix4(body.matrix);
+frontLeftFin.matrix.translate(0.999, -0.15, -0.05);
+frontLeftFin.matrix.translate(-1.0, 0.0, 0.0);
+frontLeftFin.matrix.rotate(g_frontLeftFinAngle1, 0, 1, 0);
+frontLeftFin.matrix.translate(1.0, 0.0, 0.0);
+var leftFin1Coord = new Matrix4(frontLeftFin.matrix);
+frontLeftFin.matrix.scale(0.35, 0.5, 0.40);
+frontLeftFin.render();
+
+
+
+var frontLeftFin2 = new Cube();
+frontLeftFin2.color = [0.6, 0.8, 0.4, 1.0];
+frontLeftFin2.matrix = new Matrix4(leftFin1Coord);
+frontLeftFin2.matrix.translate(1.19 - 0.999, 0, -0.25);
+frontLeftFin2.matrix.translate(-0.5, 0, 0);
+frontLeftFin2.matrix.rotate(g_frontLeftFinAngle2, 0, 1, 0);
+frontLeftFin2.matrix.translate(0.5, 0, 0);
+var leftFin2Coord = new Matrix4(frontLeftFin2.matrix);
+frontLeftFin2.matrix.scale(0.28, 0.4, 0.40);
+frontLeftFin2.render();
+
+
+var frontLeftFin3 = new Cube();
+frontLeftFin3.color =[0.6, 0.8, 0.4, 1.0];
+frontLeftFin3.matrix = new Matrix4(leftFin2Coord);
+frontLeftFin3.matrix.translate(1.3 - 1.19, 0, -0.45 + 0.25);
+frontLeftFin3.matrix.translate(-0.5, 0, 0);
+frontLeftFin3.matrix.rotate(g_frontLeftFinAngle3, 0, 1, 0);
+frontLeftFin3.matrix.translate(0.5, 0, 0);
+frontLeftFin3.matrix.scale(0.17, 0.2, 0.20);
+frontLeftFin3.render();
+
+
+
+//RIGHT---------------------------------------------------------------------
+var frontRightFin = new Cube();
+frontRightFin.color = [0.6, 0.8, 0.4, 1.0];
+frontRightFin.matrix = new Matrix4(body.matrix);
+frontRightFin.matrix.translate(-0.35, -0.15, -0.05);
+frontRightFin.matrix.translate(1.0, -0., -0.);
+frontRightFin.matrix.rotate(-g_frontRightFinAngle1, 0, 1, 0);
+frontRightFin.matrix.translate(-1.0, 0., 0.);
+var rightFin1Coord = new Matrix4(frontRightFin.matrix);
+frontRightFin.matrix.scale(0.35, 0.5, 0.40);
+frontRightFin.render();
+
+
+
+var frontRightFin2 = new Cube();
+frontRightFin2.color = [0.6, 0.8, 0.4, 1.0];
+frontRightFin2.matrix = new Matrix4(rightFin1Coord);
+frontRightFin2.matrix.translate(-0.49 + 0.35, 0, -0.25);
+
+// mirrored pivot
+frontRightFin2.matrix.translate(0.5, 0, 0);
+frontRightFin2.matrix.rotate(-g_frontRightFinAngle2, 0, 1, 0);
+frontRightFin2.matrix.translate(-0.5, 0, 0);
+
+var rightFin2Coord = new Matrix4(frontRightFin2.matrix);
+
+frontRightFin2.matrix.scale(0.28, 0.4, 0.40);
+frontRightFin2.render();
+
+
+var frontRightFin3 = new Cube();
+frontRightFin3.color =[0.6, 0.8, 0.4, 1.0];
+frontRightFin3.matrix = new Matrix4(rightFin2Coord);
+frontRightFin3.matrix.translate(0, 0, -0.45 + 0.25);
+
+// mirrored pivot
+frontRightFin3.matrix.translate(0.5, 0, 0);
+frontRightFin3.matrix.rotate(-g_frontRightFinAngle3, 0, 1, 0);
+frontRightFin3.matrix.translate(-0.5, 0, 0);
+
+frontRightFin3.matrix.scale(0.17, 0.2, 0.20);
+frontRightFin3.render();
+
+
+
+
+//BACKT--------------------------------------------------------------------
+
+var backLeftFin = new Cube();
+backLeftFin.color = [0.6, 0.8, 0.4, 1.0];
+backLeftFin.matrix = new Matrix4(body.matrix);
+backLeftFin.matrix.translate(0.999, -0.15, 0.85);
+backLeftFin.matrix.translate(-1.0, -0.5, -0.5);
+backLeftFin.matrix.rotate(g_backLeftFinAngle, 0, 1, 0);
+backLeftFin.matrix.translate(1.0, 0.5, 0.5);
+backLeftFin.matrix.scale(0.25, 0.3, 0.40);
+backLeftFin.render();
+
+
+var backRightFin = new Cube();
+backRightFin.color = [0.6, 0.8, 0.4, 1.0];
+backRightFin.matrix = new Matrix4(body.matrix);
+backRightFin.matrix.translate(-0.25, -0.15, 0.85);
+backRightFin.matrix.translate(1.0, -0.5, -0.5);
+backRightFin.matrix.rotate(-g_backRightFinAngle, 0, 1, 0);
+backRightFin.matrix.translate(-1.0, 0.5, 0.5);
+backRightFin.matrix.scale(0.25, 0.3, 0.40);
+backRightFin.render();
+
+
+
+var egg = new Cube();
+egg.textureNum = 3;
+egg.color = [1.0, 0.0, 0.0, 1.0];
+
+egg.matrix.setTranslate(0.85, -0.45, .6);
+egg.matrix.scale(0.25, 0.25, 0.25);
+
+egg.render();
+
+var egg2 = new Cube();
+egg2.textureNum = 3;
+egg2.color = [1.0, 1.0, 0.0, 1.0];
+
+egg2.matrix.setTranslate(0.25, -0.45, 1);
+egg2.matrix.scale(0.3, 0.3, 0.3);
+
+egg2.render();
+
+
+drawTree(-8, -8);
+drawTree(-10, 6);
+drawTree(9, -7);
+drawTree(7, 8);
+drawTree(-12, 3);
+drawTree(-8, -8);
+drawTree(-10, 6);
+drawTree(9, -7);
+drawTree(7, 8);
+drawTree(-12, 3);
+
+
+
+
+ //if (g_yellowAnimation) {
+ //yellow.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
+ //} else {
+  //yellow.matrix.rotate(g_yellowAngle, 0, 0, 1);
+ //}
+
+ //var yellowCoordinatesMat = new Matrix4(yellow.matrix);
+// yellow.matrix.scale(0.25, .7, .5);
+ //yellow.matrix.translate(-0.5, 0, 0.0);
+ //yellow.render();
+ 
+//var magenta = new Cube();
+//magenta.color = [1, 0, 1, 1];
+//magenta.matrix = yellowCoordinatesMat;
+//magenta.matrix.translate(0, 0.65, 0);
+//magenta.matrix.rotate(g_magentaAngle, 0, 0, 1);
+//magenta.matrix.scale(0.3, 0.3, 0.3);
+//magenta.matrix.translate(-.5, 0, -.001);
+//magenta.render();
+
+
+
+  var duration = performance.now() - startTime;
+  sendTextToHTML(" ms: " + Math.floor(duration) + " fps:" + Math.floor(10000/duration)/10, "numdot");
+
+}
+
+function sendTextToHTML(text, htmlID) {
+  var htmlElm = document.getElementById(htmlID);
+  if (!htmlElm) {
+    console.log("Failed to get " + htmlID + " from HTML");
+    return;
+  }
+  htmlElm.innerHTML = text;
+}
+
+function drawTree(x, z) {
+
+
+  var trunk = new Cube();
+  trunk.textureNum = -2;
+  trunk.color = [0.45, 0.25, 0.1, 1.0];
+  trunk.matrix.setTranslate(x, -0.75, z);
+  trunk.matrix.scale(0.4, 2.5, 0.4);
+  trunk.render();
+
+
+  var leaves1 = new Cube();
+  leaves1.textureNum = -2;
+  leaves1.color = [0.1, 0.6, 0.2, 1.0];
+  leaves1.matrix.setTranslate(x - 1, 1.2, z - 1);
+  leaves1.matrix.scale(2, 1.2, 2);
+  leaves1.render();
+
+
+  var leaves2 = new Cube();
+  leaves2.textureNum = -2;
+  leaves2.color = [0.1, 0.65, 0.2, 1.0];
+  leaves2.matrix.setTranslate(x - 0.7, 2.2, z - 0.7);
+  leaves2.matrix.scale(1.5, 1.2, 1.5);
+  leaves2.render();
+
+
+  var leaves3 = new Cube();
+  leaves3.textureNum = -2;
+  leaves3.color = [0.15, 0.7, 0.25, 1.0];
+  leaves3.matrix.setTranslate(x - 0.4, 3.1, z - 0.4);
+  leaves3.matrix.scale(1, 1, 1);
+  leaves3.render();
+}
