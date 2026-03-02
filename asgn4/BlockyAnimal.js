@@ -576,6 +576,9 @@ function convertCoordinatesEventToGL(ev) {
 }
 
 function updateAnimationAngles() {
+
+  g_lightPos[0] = 3 * Math.cos(g_seconds);
+
   if (g_bodyAnimation) {
   g_bodyOffset = 0.06 * Math.sin(g_seconds * 2);
 } else {
