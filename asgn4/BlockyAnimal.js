@@ -5,7 +5,9 @@
 var VSHADER_SOURCE =`
   attribute vec4 a_Position;
   attribute vec2 a_UV;
+  attribute vec3 a_Normal;
   varying vec2 v_UV;
+  varying vec3 v_Normal;
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_GlobalRotateMatrix;
   uniform mat4 u_ViewMatrix;
@@ -14,6 +16,7 @@ var VSHADER_SOURCE =`
   void main() {
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
+    v_Normal = a_Normal;
   }`
 
   
@@ -21,6 +24,7 @@ var VSHADER_SOURCE =`
 var FSHADER_SOURCE = `
   precision mediump float;
   varying vec2 v_UV;
+  varying vec3 v_Normal;
   uniform vec4 u_FragColor;
   uniform sampler2D u_Sampler0;
   uniform sampler2D u_Sampler1;
@@ -30,7 +34,10 @@ var FSHADER_SOURCE = `
 
   void main() {
 
-    if (u_whichTexture == -2) {
+    if (u_whichTexture == -3) {
+      gl_FragColor = vec4((v_Normal+1.0)/2.0, 1.0);
+
+     } else if (u_whichTexture == -2) {
       gl_FragColor = u_FragColor;
 
     } else if (u_whichTexture == -1) {
@@ -103,6 +110,12 @@ function connectVariablesToGLSL(){
   a_UV = gl.getAttribLocation(gl.program, 'a_UV');
   if (a_UV < 0) {
     console.log('Failed to get the storage location of a_UV');
+    return;
+  }
+
+   a_Normal = gl.getAttribLocation(gl.program, 'a_Normal');
+  if (a_Normal < 0) {
+    console.log('Failed to get the storage location of a_Normal');
     return;
   }
   
@@ -228,7 +241,7 @@ let g_frontRightFinAnim1 = false;
 let g_pokeAnimation = false;
 let g_pokeStartTime = 0;
 let g_headPokeAngle = 0;
-
+let g_normalOn = false;
 
 
 
@@ -236,6 +249,8 @@ let g_headPokeAngle = 0;
 
 
 function addActionsForHtmlUI () {
+  document.getElementById('normalOn').onclick = function() {g_normalOn=true;};
+  document.getElementById('normalOff').onclick = function() {g_normalOn=false;};
 
   document.getElementById('animationMagentaOnButton').onclick = function() {g_magentaAnimation=true;};
   document.getElementById('animationMagentaOffButton').onclick = function() {g_magentaAnimation=false;};
@@ -721,6 +736,7 @@ floor.render();
 //sky
 var sky = new Cube();
 sky.color = [1.0, 0.0, 0.0, 1.0];
+
 sky.textureNum = 0;
 sky.matrix.scale(50, 50, 50);
 sky.matrix.translate(-0.5, -0.5, -0.5);
@@ -729,41 +745,22 @@ sky.render();
 //4.1 test cube
 var testCube = new Cube();
 testCube.color = [0.5, 0.5, 0.5, 1.0];
+if (g_normalOn) testCube.textureNum = -3;
+sky.matrix.scale(-5, -5, -5);
 testCube.matrix.setTranslate(0, 0, 0);
 testCube.render();
 
-//ROOM-----------------------------------------------------------
-let roomSize = 6.5; 
-let wallHeight = 6.5;
 
-var backWall = new Cube();
-backWall.matrix.setTranslate(-roomSize/2, -0.75, -roomSize/2);
-backWall.matrix.scale(roomSize, wallHeight, 0.2);
-backWall.render();
-
-var frontWall = new Cube();
-frontWall.matrix.setTranslate(-roomSize/2, -0.75, roomSize/2 - 0.2);
-frontWall.matrix.scale(roomSize, wallHeight, 0.2);
-frontWall.render();
-
-var leftWall = new Cube();
-leftWall.matrix.setTranslate(-roomSize/2, -0.75, -roomSize/2);
-leftWall.matrix.scale(0.2, wallHeight, roomSize);
-leftWall.render();
+let roomSize = 7; 
+var room = new Cube();
+if (g_normalOn) room.textureNum = -3;
+else room.textureNum = -2;
+room.color = [0.9, 0.9, 0.9, 1.0];
+room.matrix.scale(-roomSize, -roomSize, -roomSize);
+room.matrix.translate(-0.5, -0.5, -0.5);
+room.render();
 
 
-var rightWall = new Cube();
-rightWall.matrix.setTranslate(roomSize/2 - 0.2, -0.75, -roomSize/2);
-rightWall.matrix.scale(0.2, wallHeight, roomSize);
-rightWall.render();
-
-
-var ceiling = new Cube();
-ceiling.matrix.setTranslate(-roomSize/2, wallHeight - 0.75, -roomSize/2);
-ceiling.matrix.scale(roomSize, 0.2, roomSize);
-ceiling.render();
-
-//Rooom end================================================
 var body = new Cube();
 body.color = [0.6, 0.9, 0.4, 1.0];
 
