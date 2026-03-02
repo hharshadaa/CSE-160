@@ -75,6 +75,7 @@ let u_Sampler1;
 let u_Sampler2;
 let u_Sampler3;
 let u_whichTexture;
+let a_Normal;
 
 let g_camera;
 
@@ -759,6 +760,13 @@ room.color = [0.9, 0.9, 0.9, 1.0];
 room.matrix.scale(-roomSize, -roomSize, -roomSize);
 room.matrix.translate(-0.5, -0.5, -0.5);
 room.render();
+
+var testSphere = new Sphere();
+if (g_normalOn) testSphere.textureNum = -3;
+
+testSphere.matrix.setTranslate(0, 0.5, -1);
+testSphere.matrix.scale(0.5, 0.5, 0.5);
+testSphere.render();
 
 
 var body = new Cube();
