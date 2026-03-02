@@ -763,7 +763,6 @@ room.render();
 
 var testSphere = new Sphere();
 if (g_normalOn) testSphere.textureNum = -3;
-
 testSphere.matrix.setTranslate(0, 0.5, -1);
 testSphere.matrix.scale(0.5, 0.5, 0.5);
 testSphere.render();
