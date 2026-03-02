@@ -8,6 +8,7 @@ var VSHADER_SOURCE =`
   attribute vec3 a_Normal;
   varying vec2 v_UV;
   varying vec3 v_Normal;
+  varying vec4 v_VertPos;
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_GlobalRotateMatrix;
   uniform mat4 u_ViewMatrix;
@@ -17,6 +18,7 @@ var VSHADER_SOURCE =`
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
     v_Normal = a_Normal;
+    v_VertPos = u_ModelMatrix * a_Position;
   }`
 
   
@@ -31,6 +33,8 @@ var FSHADER_SOURCE = `
   uniform sampler2D u_Sampler2;
   uniform sampler2D u_Sampler3;
   uniform int u_whichTexture;
+  uniform vec3 u_lightPos;
+  varying vec4 v_VertPos;
 
   void main() {
 
@@ -58,6 +62,15 @@ var FSHADER_SOURCE = `
     } else {
       gl_FragColor = vec4(1.0, 0.2, 0.2, 1.0);
     }
+
+    vec3 lightVector = vec3(v_VertPos) - u_lightPos;
+    float r = length(lightVector);
+    if (r < 1.0) {
+      gl_FragColor = vec4(1, 0, 0, 1);
+    } else if (r < 2.0) {
+      gl_FragColor = vec4(0, 1, 0, 1);
+    }
+    
   }`
 
 let canvas;
@@ -70,6 +83,7 @@ let u_ModelMatrix;
 let u_ProjectionMatrix;
 let u_ViewMatrix;
 let u_GlobalRotateMatrix;
+let u_lightPos;
 let u_Sampler0;
 let u_Sampler1;
 let u_Sampler2;
@@ -151,6 +165,14 @@ function connectVariablesToGLSL(){
     console.log('Failed to get the storage location of u_ProjectionMatrix');
     return;
   }
+
+  u_lightPos = gl.getUniformLocation(gl.program, 'u_lightPos');
+  if (!u_lightPos) {
+    console.log('Failed to get the storage location of u_lightPos');
+    return;
+  }
+
+
 
 
 
@@ -243,6 +265,7 @@ let g_pokeAnimation = false;
 let g_pokeStartTime = 0;
 let g_headPokeAngle = 0;
 let g_normalOn = false;
+let g_lightPos = [0,1,-2];
 
 
 
@@ -296,6 +319,9 @@ function addActionsForHtmlUI () {
   document.getElementById('frontLeftFinAnimOffButton').onclick = function() { g_frontLeftFinAnim1 = false;};
   document.getElementById('frontRightFinAnimOnButton').onclick  = function() {g_frontRightFinAnim1 = true;};
   document.getElementById('frontRightFinAnimOffButton').onclick = function() {g_frontRightFinAnim1 = false;};
+  document.getElementById('lightSlideX').addEventListener('mousemove', function(ev) { if (ev.buttons == 1) { g_lightPos[0] = this.value/100; renderAllShapes(); }});
+  document.getElementById('lightSlideY').addEventListener('mousemove', function(ev) {if (ev.buttons == 1) { g_lightPos[1] = this.value/100; renderAllShapes(); }});
+  document.getElementById('lightSlideZ').addEventListener('mousemove', function(ev) {if (ev.buttons == 1) { g_lightPos[2] = this.value/100; renderAllShapes(); }});
 
 }
 
@@ -723,9 +749,19 @@ function renderAllShapes(){
   
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
 
 
  drawMap();
+
+
+
+var light = new Cube();
+light.color = [2, 2, 0, 1];
+light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+light.matrix.scale(0.1, 0.1, 0.1);
+light.matrix.translate(-0.5, -0.5, -0.5);
+light.render();
 
  // Draw the floor
 var floor = new Cube();
@@ -763,7 +799,7 @@ room.render();
 
 var testSphere = new Sphere();
 if (g_normalOn) testSphere.textureNum = -3;
-testSphere.matrix.setTranslate(0, 0.5, -1);
+testSphere.matrix.setTranslate(-1, 0, 0.5);
 testSphere.matrix.scale(0.5, 0.5, 0.5);
 testSphere.render();
 

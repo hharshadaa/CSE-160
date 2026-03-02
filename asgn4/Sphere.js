@@ -47,6 +47,13 @@ class Sphere {
           Math.cos(t + dd)
         ];
 
+        var uv1 = [ t / Math.PI, (r) / (2 * Math.PI) ];
+        var uv2 = [ (t + dd) / Math.PI, (r) / (2 * Math.PI) ];
+        var uv3 = [ t / Math.PI, (r + dd) / (2 * Math.PI) ];
+        var uv4 = [ (t + dd) / Math.PI, (r + dd) / (2 * Math.PI) ];
+
+
+
         var v = [];
         var uv = [];
         v = v.concat(p1); uv = uv.concat([0,0]);
