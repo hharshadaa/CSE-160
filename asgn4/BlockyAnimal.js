@@ -36,6 +36,7 @@ var FSHADER_SOURCE = `
   uniform int u_whichTexture;
   uniform vec3 u_lightPos;
   varying vec4 v_VertPos;
+  uniform bool u_lightOn;
 
 
   void main() {
@@ -79,14 +80,18 @@ var FSHADER_SOURCE = `
     vec3 E = normalize(u_cameraPos - vec3(v_VertPos));
 
     // Specular
-    float specular = pow(max(dot(E, R), 0.0), 10.0);
+    float specular = pow(max(dot(E,R), 0.0), 64.04) * 0.8;
 
-    vec3 diffuse = gl_FragColor.rgb * nDotL * 0.7;
-    vec3 ambient = gl_FragColor.rgb * 0.3;
+    vec3 diffuse = vec3(1.0, 1.0, 0.9) * vec3(gl_FragColor) * nDotL * 0.7;
+    vec3 ambient = vec3(gl_FragColor) * 0.2;
 
-    gl_FragColor = vec4(specular + diffuse + ambient, 1.0);
-
-    
+    if (u_lightOn) {
+        if (u_whichTexture == 0) {
+            gl_FragColor = vec4(specular + diffuse + ambient, 1.0);
+        } else {
+            gl_FragColor = vec4(diffuse + ambient, 1.0);
+        }
+    }  
   }`
 
 let canvas;
@@ -109,6 +114,7 @@ let a_Normal;
 let u_cameraPos;
 
 let g_camera;
+let u_lightOn;
 
 
 function setupWebGL(){
@@ -195,6 +201,9 @@ function connectVariablesToGLSL(){
     console.log('Failed to get the storage location of u_cameraPos');
     return;
   }
+
+  
+  u_lightOn = gl.getUniformLocation(gl.program, 'u_lightOn');
 
 
 
@@ -288,6 +297,7 @@ let g_pokeAnimation = false;
 let g_pokeStartTime = 0;
 let g_headPokeAngle = 0;
 let g_normalOn = false;
+let g_lightOn = false;
 let g_lightPos = [0,1,-2];
 
 
@@ -298,6 +308,9 @@ let g_lightPos = [0,1,-2];
 function addActionsForHtmlUI () {
   document.getElementById('normalOn').onclick = function() {g_normalOn=true;};
   document.getElementById('normalOff').onclick = function() {g_normalOn=false;};
+
+  document.getElementById('lightOn').onclick = function() {g_lightOn=true;};
+  document.getElementById('lightOff').onclick = function() {g_lightOn=false;};
 
   document.getElementById('animationMagentaOnButton').onclick = function() {g_magentaAnimation=true;};
   document.getElementById('animationMagentaOffButton').onclick = function() {g_magentaAnimation=false;};
@@ -776,7 +789,8 @@ function renderAllShapes(){
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
- // gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
+  gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
+  gl.uniform1i(u_lightOn, g_lightOn);
 
 
 
