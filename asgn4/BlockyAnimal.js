@@ -38,6 +38,9 @@ var FSHADER_SOURCE = `
   varying vec4 v_VertPos;
   uniform bool u_lightOn;
 
+  uniform vec3 u_lightDir;
+  uniform float u_cutoff;
+
 
   void main() {
 
@@ -70,8 +73,16 @@ var FSHADER_SOURCE = `
     float r = length(lightVector);
 
     vec3 L = normalize(lightVector);
+
+    // Spotlight calculation
+    float theta = dot(normalize(-L), normalize(u_lightDir));
+
+    // Check if inside cone
+    float epsilon = u_cutoff;
+    float intensity = smoothstep(epsilon, epsilon + 0.02, theta);
+
     vec3 N = normalize(v_Normal);
-    float nDotL = max(dot(N, L), 0.0);
+    float nDotL = max(dot(N, L), 0.0)*intensity;
 
     // Reflection
     vec3 R = reflect(-L, N);
@@ -82,7 +93,7 @@ var FSHADER_SOURCE = `
     // Specular
     float specular = pow(max(dot(E,R), 0.0), 64.04) * 0.8;
 
-    vec3 diffuse = vec3(1.0, 1.0, 0.9) * vec3(gl_FragColor) * nDotL * 0.7;
+    vec3 diffuse = vec3(1.0, 1.0, 0.9) * vec3(gl_FragColor) * nDotL * intensity;
     vec3 ambient = vec3(gl_FragColor) * 0.2;
 
     if (u_lightOn) {
@@ -112,6 +123,9 @@ let u_Sampler3;
 let u_whichTexture;
 let a_Normal;
 let u_cameraPos;
+
+let u_lightDir;
+let u_cutoff;
 
 let g_camera;
 let u_lightOn;
@@ -204,6 +218,8 @@ function connectVariablesToGLSL(){
 
   
   u_lightOn = gl.getUniformLocation(gl.program, 'u_lightOn');
+  u_lightDir = gl.getUniformLocation(gl.program, 'u_lightDir');
+  u_cutoff = gl.getUniformLocation(gl.program, 'u_cutoff');
 
 
 
@@ -791,6 +807,8 @@ function renderAllShapes(){
   gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
   gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
   gl.uniform1i(u_lightOn, g_lightOn);
+  gl.uniform3f(u_lightDir, 0.0, -1.0, 0.0);  
+gl.uniform1f(u_cutoff, 0.95); 
 
 
 
