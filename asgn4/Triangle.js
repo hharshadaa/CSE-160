@@ -14,12 +14,11 @@ class Triangle{
 render() {
   const xy = this.position;
   const rgba = this.color;
-  const size = this.size; // slider value (pixels-ish)
+  const size = this.size; 
 
   gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);
 
-  // Convert pixels -> clip space
-  //used gpt to debug this part 
+  
   const dx = (size / canvas.width) * 2.0;
   const dy = (size / canvas.height) * 2.0;
 
@@ -39,12 +38,12 @@ function drawTriangle(vertices) {
   }
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-  // Write date into the buffer object
+
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
 
-  // Assign the buffer object to a_Position variable
+
   gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
-  // Enable the assignment to a_Position variable
+
   gl.enableVertexAttribArray(a_Position);
 
   gl.drawArrays(gl.TRIANGLES, 0 , n);

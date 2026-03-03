@@ -79,7 +79,7 @@ var FSHADER_SOURCE = `
 
     // Check if inside cone
     float epsilon = u_cutoff;
-    float intensity = smoothstep(epsilon, epsilon + 0.02, theta);
+    float intensity = smoothstep(epsilon, epsilon + 0.2, theta);
 
     vec3 N = normalize(v_Normal);
     float nDotL = max(dot(N, L), 0.0)*intensity;
@@ -129,14 +129,19 @@ let u_cutoff;
 
 let g_camera;
 let u_lightOn;
+let myModel = null;
 
+async function loadModel() {
+  let response = await fetch('Untitled.obj');
+  let text = await response.text();
+  myModel = new Model(text);
+}
 
 function setupWebGL(){
     // Retrieve <canvas> element
   canvas = document.getElementById('webgl');
 
-  // Get the rendering context for WebGL
-  //gl = getWebGLContext(canvas);
+ 
   gl = canvas.getContext("webgl", { preserveDrawingBuffer: true});
   if (!gl) {
     console.log('Failed to get the rendering context for WebGL');
@@ -146,13 +151,12 @@ function setupWebGL(){
 }
 
 function connectVariablesToGLSL(){
-  // Initialize shaders
+
   if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
     console.log('Failed to intialize shaders.');
     return;
   }
 
-  // // Get the storage location of a_Position
   a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   if (a_Position < 0) {
     console.log('Failed to get the storage location of a_Position');
@@ -172,7 +176,7 @@ function connectVariablesToGLSL(){
   }
   
 
-  // Get the storage location of u_FragColor
+
   u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
   if (!u_FragColor) {
     console.log('Failed to get the storage location of u_FragColor');
@@ -539,6 +543,7 @@ function main() {
 
   initTextures();
   initMap();
+  loadModel();
 
   
   canvas.onmousedown = function(ev) {
@@ -808,11 +813,29 @@ function renderAllShapes(){
   gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
   gl.uniform1i(u_lightOn, g_lightOn);
   gl.uniform3f(u_lightDir, 0.0, -1.0, 0.0);  
-gl.uniform1f(u_cutoff, 0.95); 
+gl.uniform1f(u_cutoff, 0.1); 
 
 
 
  drawMap();
+
+if (myModel) {
+
+  gl.uniform1i(u_whichTexture, -2);
+  gl.uniform4f(u_FragColor, 0.8, 0.6, 0.3, 1.0);
+
+  let modelMatrix = new Matrix4();
+
+  // Place at center of world
+  modelMatrix.setTranslate(0, -0.75, 0);
+
+  // Scale down (OBJ files are big)
+  modelMatrix.scale(0.2, 0.2, 0.2);
+
+  gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+
+  myModel.render();
+}
 
 
 
@@ -875,7 +898,7 @@ body.matrix.translate(0, 0, 0.15);
 body.render();
 
 //3D
-var shellDome = new Sphere();
+var shellDome = new Sphere2();
 shellDome.color = [0.25, 0.4, 0.2, 1.0];
 shellDome.matrix = new Matrix4(body.matrix);
 shellDome.matrix.translate(0.5, 1.7, 0.5);

@@ -11,7 +11,6 @@ class Sphere {
 
     var rgba = this.color;
 
-    // Use UV debug mode for testing (you can change back to -2 later)
     gl.uniform1i(u_whichTexture, this.textureNum);
 
     gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);

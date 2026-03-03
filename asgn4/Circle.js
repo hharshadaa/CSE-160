@@ -45,3 +45,53 @@ class Circle{
   }
 
 }
+
+class Sphere2 {
+  constructor() {
+    this.color = [1.0, 1.0, 1.0, 1.0];
+    this.matrix = new Matrix4();
+    this.segments = 12;   // horizontal slices
+    this.rings = 12;      // vertical slices
+  }
+
+  render() {
+    gl.uniform4f(u_FragColor,
+      this.color[0],
+      this.color[1],
+      this.color[2],
+      this.color[3]
+    );
+
+    gl.uniformMatrix4fv(
+      u_ModelMatrix,
+      false,
+      this.matrix.elements
+    );
+
+    for (let lat = 0; lat < this.rings; lat++) {
+      let theta1 = lat * Math.PI / this.rings;
+      let theta2 = (lat + 1) * Math.PI / this.rings;
+
+      for (let lon = 0; lon < this.segments; lon++) {
+        let phi1 = lon * 2 * Math.PI / this.segments;
+        let phi2 = (lon + 1) * 2 * Math.PI / this.segments;
+
+        let p1 = this.point(theta1, phi1);
+        let p2 = this.point(theta2, phi1);
+        let p3 = this.point(theta2, phi2);
+        let p4 = this.point(theta1, phi2);
+
+        drawTriangle3D([...p1, ...p2, ...p3]);
+        drawTriangle3D([...p1, ...p3, ...p4]);
+      }
+    }
+  }
+
+  point(theta, phi) {
+    return [
+      Math.sin(theta) * Math.cos(phi),
+      Math.cos(theta),
+      Math.sin(theta) * Math.sin(phi)
+    ];
+  }
+}
