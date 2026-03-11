@@ -23,6 +23,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 function main() {
 
@@ -33,7 +34,7 @@ function main() {
 
   // camera
   const fov = 75;
-  const aspect = 2;     // original tutorial aspect
+  const aspect = 2;
   const near = 0.1;
   const far = 10;
 
@@ -41,6 +42,12 @@ function main() {
   camera.position.z = 6;
 
   const scene = new THREE.Scene();
+
+  // ---------- PART 4: CAMERA CONTROLS ----------
+
+  const controls = new OrbitControls(camera, canvas);
+  controls.target.set(0, 0, 0);
+  controls.update();
 
   // ---------- LIGHT ----------
 
@@ -92,33 +99,27 @@ function main() {
 
   // ---------- PART 3: LOAD CHICKEN MODEL ----------
 
-// ---------- PART 3: LOAD CHICKEN MODEL ----------
-// ---------- PART 3: LOAD CHICKEN MODEL ----------
+  const gltfLoader = new GLTFLoader();
 
-const gltfLoader = new GLTFLoader();
+  gltfLoader.load(
+    'resources/models/Chicken.glb',
+    function (gltf) {
 
-gltfLoader.load(
-  'resources/models/Chicken.glb',
-  function (gltf) {
+      console.log("Chicken loaded!");
 
-    console.log("Chicken loaded!");
+      const chicken = gltf.scene;
 
-    const chicken = gltf.scene;
+      chicken.scale.set(0.01, 0.01, 0.01);
+      chicken.position.set(0, 0, 0);
 
-    // most GLB models are huge, so shrink it
-    chicken.scale.set(0.01, 0.01, 0.01);
+      scene.add(chicken);
 
-    // place it in front of the camera
-    chicken.position.set(0, 0, 0);
-
-    scene.add(chicken);
-  },
-  undefined,
-  function (error) {
-    console.error(error);
-  }
-);
-
+    },
+    undefined,
+    function (error) {
+      console.error(error);
+    }
+  );
 
   // ---------- ANIMATION ----------
 
@@ -135,6 +136,8 @@ gltfLoader.load(
       cube.rotation.y = rot;
 
     });
+
+    controls.update();
 
     renderer.render(scene, camera);
 
