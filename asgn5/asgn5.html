@@ -44,6 +44,13 @@ function main() {
 
   const scene = new THREE.Scene();
 
+  // ---------- PART 6: SKYBOX / BACKGROUND ----------
+
+  const bgLoader = new THREE.TextureLoader();
+  const bgTexture = bgLoader.load('resources/images/sky.jpg');
+  bgTexture.colorSpace = THREE.SRGBColorSpace;
+  scene.background = bgTexture;
+
   // ---------- PART 4: CAMERA CONTROLS ----------
 
   const controls = new OrbitControls(camera, canvas);
@@ -52,16 +59,16 @@ function main() {
 
   // ---------- PART 5: LIGHT SOURCES ----------
 
-  // Ambient light (fills dark areas)
+  // Ambient light
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
 
-  // Directional light (like sunlight)
+  // Directional light
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
   directionalLight.position.set(-1, 2, 4);
   scene.add(directionalLight);
 
-  // Point light (light from a position)
+  // Point light
   const pointLight = new THREE.PointLight(0xffaa00, 20);
   pointLight.position.set(2, 2, 2);
   scene.add(pointLight);
