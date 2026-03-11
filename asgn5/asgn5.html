@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Assignment 5</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/"
+  }
+}
+</script>
+
+</head>
+
+<body>
+
+<canvas id="c"></canvas>
+
+<script type="module">
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+function main() {
+
+  console.log("Three.js loaded successfully");
+
+  const canvas = document.querySelector('#c');
+  const renderer = new THREE.WebGLRenderer({antialias:true, canvas});
+
+  // camera
+  const fov = 75;
+  const aspect = 2;     // original tutorial aspect
+  const near = 0.1;
+  const far = 10;
+
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 6;
+
+  const scene = new THREE.Scene();
+
+  // ---------- LIGHT ----------
+
+  const color = 0xFFFFFF;
+  const intensity = 3;
+  const light = new THREE.DirectionalLight(color, intensity);
+  light.position.set(-1, 2, 4);
+  scene.add(light);
+
+  // ---------- GEOMETRY ----------
+
+  const geometry = new THREE.BoxGeometry(1,1,1);
+
+  // ---------- PART 1: COLORED CUBES ----------
+
+  function makeInstance(geometry, color, x) {
+
+    const material = new THREE.MeshPhongMaterial({color});
+
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    cube.position.x = x;
+
+    return cube;
+  }
+
+  const cubes = [
+    makeInstance(geometry, 0x44aa88, 0),
+    makeInstance(geometry, 0x8844aa, -2),
+    makeInstance(geometry, 0xaa8844, 2),
+  ];
+
+  // ---------- PART 2: TEXTURED CUBE ----------
+
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load('resources/images/wall.jpg');
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  const textureMaterial = new THREE.MeshBasicMaterial({
+    map: texture,
+  });
+
+  const texturedCube = new THREE.Mesh(geometry, textureMaterial);
+  texturedCube.position.set(0, -2, 0);
+
+  scene.add(texturedCube);
+  cubes.push(texturedCube);
+
+  // ---------- PART 3: LOAD CHICKEN MODEL ----------
+
+// ---------- PART 3: LOAD CHICKEN MODEL ----------
+// ---------- PART 3: LOAD CHICKEN MODEL ----------
+
+const gltfLoader = new GLTFLoader();
+
+gltfLoader.load(
+  'resources/models/Chicken.glb',
+  function (gltf) {
+
+    console.log("Chicken loaded!");
+
+    const chicken = gltf.scene;
+
+    // most GLB models are huge, so shrink it
+    chicken.scale.set(0.01, 0.01, 0.01);
+
+    // place it in front of the camera
+    chicken.position.set(0, 0, 0);
+
+    scene.add(chicken);
+  },
+  undefined,
+  function (error) {
+    console.error(error);
+  }
+);
+
+
+  // ---------- ANIMATION ----------
+
+  function render(time) {
+
+    time *= 0.001;
+
+    cubes.forEach((cube, ndx) => {
+
+      const speed = 1 + ndx * 0.1;
+      const rot = time * speed;
+
+      cube.rotation.x = rot;
+      cube.rotation.y = rot;
+
+    });
+
+    renderer.render(scene, camera);
+
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+}
+
+main();
+
+</script>
+
+</body>
+</html>
