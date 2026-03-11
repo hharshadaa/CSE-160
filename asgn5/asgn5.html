@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <title>Assignment 5</title>
 
-<!-- Site link for submission -->
-<!-- https://YOUR-SITE-LINK-HERE -->
 
 <script type="importmap">
 {
@@ -16,11 +14,43 @@
 }
 </script>
 
+<p style="color:white;">Press "Start Game" to play.</p>
+<p style="color:white;">Try to click all the blocks before the timer runs out.</p>
+
+<style>
+body{
+margin:0;
+overflow:hidden;
+font-family:sans-serif;
+background:black;
+}
+
+#ui{
+text-align:center;
+color:white;
+padding:10px;
+}
+
+button{
+font-size:18px;
+padding:8px 16px;
+cursor:pointer;
+}
+</style>
+
 </head>
 
 <body>
 
 <canvas id="c"></canvas>
+
+<div id="ui">
+<button id="startBtn">Start Game</button>
+<div style="margin-top:8px;">
+Time: <span id="timer">30</span> |
+Objects Left: <span id="remaining">0</span>
+</div>
+</div>
 
 <script type="module">
 
@@ -28,168 +58,218 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-function main() {
+function main(){
 
-  console.log("Three.js loaded successfully");
+const canvas = document.querySelector('#c');
+const renderer = new THREE.WebGLRenderer({antialias:true, canvas});
 
-  const canvas = document.querySelector('#c');
-  const renderer = new THREE.WebGLRenderer({antialias:true, canvas});
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
-  // ---------- CAMERA ----------
+let gameObjects = [];
+let timeLeft = 30;
+let gameActive = false;
 
-  const fov = 75;
-  const aspect = 2;
-  const near = 0.1;
-  const far = 10;
+const timerElem = document.getElementById("timer");
+const remainingElem = document.getElementById("remaining");
+const startBtn = document.getElementById("startBtn");
 
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.z = 6;
+//camera
+const camera = new THREE.PerspectiveCamera(75,2,0.1,10);
+camera.position.z = 6;
 
-  const scene = new THREE.Scene();
+const scene = new THREE.Scene();
 
-  // ---------- PART 6: SKYBOX ----------
+//sky
+const bgLoader = new THREE.TextureLoader();
+const bgTexture = bgLoader.load('resources/images/sky.jpg');
+bgTexture.colorSpace = THREE.SRGBColorSpace;
+scene.background = bgTexture;
 
-  const bgLoader = new THREE.TextureLoader();
-  const bgTexture = bgLoader.load('resources/images/sky.jpg');
-  bgTexture.colorSpace = THREE.SRGBColorSpace;
-  scene.background = bgTexture;
+//cameras
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0,0,0);
+controls.update();
 
-  // ---------- CAMERA CONTROLS ----------
+//lights
+scene.add(new THREE.AmbientLight(0xffffff,0.4));
 
-  const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 0, 0);
-  controls.update();
+const directionalLight = new THREE.DirectionalLight(0xffffff,1.5);
+directionalLight.position.set(-1,2,4);
+scene.add(directionalLight);
 
-  // ---------- LIGHT SOURCES ----------
+const pointLight = new THREE.PointLight(0xffaa00,20);
+pointLight.position.set(2,2,2);
+scene.add(pointLight);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-  scene.add(ambientLight);
+const geometry = new THREE.BoxGeometry(1,1,1);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-  directionalLight.position.set(-1, 2, 4);
-  scene.add(directionalLight);
+//cubes
+function makeInstance(geometry,color,x){
 
-  const pointLight = new THREE.PointLight(0xffaa00, 20);
-  pointLight.position.set(2, 2, 2);
-  scene.add(pointLight);
+const material = new THREE.MeshPhongMaterial({color});
+const cube = new THREE.Mesh(geometry,material);
 
-  // ---------- GEOMETRY ----------
+cube.position.x = x;
 
-  const geometry = new THREE.BoxGeometry(1,1,1);
+scene.add(cube);
+gameObjects.push(cube);
 
-  // ---------- COLORED CUBES ----------
+return cube;
+}
 
-  function makeInstance(geometry, color, x) {
+const cubes = [
+makeInstance(geometry,0x44aa88,0),
+makeInstance(geometry,0x8844aa,-2),
+makeInstance(geometry,0xaa8844,2),
+];
 
-    const material = new THREE.MeshPhongMaterial({color});
+//texture cube
+const loader = new THREE.TextureLoader();
+const texture = loader.load('resources/images/wall.jpg');
+texture.colorSpace = THREE.SRGBColorSpace;
 
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+const textureMaterial = new THREE.MeshBasicMaterial({map:texture});
+const texturedCube = new THREE.Mesh(geometry,textureMaterial);
 
-    cube.position.x = x;
+texturedCube.position.set(0,-2,0);
 
-    return cube;
-  }
+scene.add(texturedCube);
+cubes.push(texturedCube);
+gameObjects.push(texturedCube);
 
-  const cubes = [
-    makeInstance(geometry, 0x44aa88, 0),
-    makeInstance(geometry, 0x8844aa, -2),
-    makeInstance(geometry, 0xaa8844, 2),
-  ];
+//chicken
+const gltfLoader = new GLTFLoader();
 
-  // ---------- TEXTURED CUBE ----------
+gltfLoader.load('resources/models/Chicken.glb',(gltf)=>{
 
-  const loader = new THREE.TextureLoader();
-  const texture = loader.load('resources/images/wall.jpg');
-  texture.colorSpace = THREE.SRGBColorSpace;
+const chicken = gltf.scene;
+chicken.scale.set(0.01,0.01,0.01);
+scene.add(chicken);
 
-  const textureMaterial = new THREE.MeshBasicMaterial({
-    map: texture,
-  });
+});
 
-  const texturedCube = new THREE.Mesh(geometry, textureMaterial);
-  texturedCube.position.set(0, -2, 0);
+//shapes extra
+const sphereGeometry = new THREE.SphereGeometry(0.5,32,16);
+const cylinderGeometry = new THREE.CylinderGeometry(0.4,0.4,1,32);
+const shapeMaterial = new THREE.MeshPhongMaterial({color:0x3399ff});
 
-  scene.add(texturedCube);
-  cubes.push(texturedCube);
+for(let i=0;i<10;i++){
 
-  // ---------- LOAD CHICKEN MODEL ----------
+const sphere = new THREE.Mesh(sphereGeometry,shapeMaterial);
 
-  const gltfLoader = new GLTFLoader();
+sphere.position.set(
+(Math.random()-0.5)*10,
+(Math.random()-0.5)*6,
+(Math.random()-0.5)*10
+);
 
-  gltfLoader.load(
-    'resources/models/Chicken.glb',
-    function (gltf) {
+scene.add(sphere);
+gameObjects.push(sphere);
+}
 
-      console.log("Chicken loaded!");
+for(let i=0;i<10;i++){
 
-      const chicken = gltf.scene;
+const cylinder = new THREE.Mesh(cylinderGeometry,shapeMaterial);
 
-      chicken.scale.set(0.01, 0.01, 0.01);
-      chicken.position.set(0, 0, 0);
+cylinder.position.set(
+(Math.random()-0.5)*10,
+(Math.random()-0.5)*6,
+(Math.random()-0.5)*10
+);
 
-      scene.add(chicken);
+scene.add(cylinder);
+gameObjects.push(cylinder);
+}
 
-    }
-  );
+remainingElem.textContent = gameObjects.length;
 
-  // ---------- PART 7: EXTRA SHAPES (20+ PRIMARY SHAPES) ----------
+//start
+startBtn.addEventListener("click",()=>{
 
-  const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 16);
-  const cylinderGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1, 32);
+gameActive = true;
+startBtn.disabled = true;
 
-  const shapeMaterial = new THREE.MeshPhongMaterial({color: 0x3399ff});
+});
 
-  for (let i = 0; i < 10; i++) {
+//click mechanism
+canvas.addEventListener("click",(event)=>{
 
-    const sphere = new THREE.Mesh(sphereGeometry, shapeMaterial);
+if(!gameActive) return;
 
-    sphere.position.set(
-      (Math.random() - 0.5) * 10,
-      (Math.random() - 0.5) * 6,
-      (Math.random() - 0.5) * 10
-    );
+const rect = canvas.getBoundingClientRect();
 
-    scene.add(sphere);
-  }
+mouse.x = ((event.clientX-rect.left)/rect.width)*2-1;
+mouse.y = -((event.clientY-rect.top)/rect.height)*2+1;
 
-  for (let i = 0; i < 10; i++) {
+raycaster.setFromCamera(mouse,camera);
 
-    const cylinder = new THREE.Mesh(cylinderGeometry, shapeMaterial);
+const intersects = raycaster.intersectObjects(gameObjects);
 
-    cylinder.position.set(
-      (Math.random() - 0.5) * 10,
-      (Math.random() - 0.5) * 6,
-      (Math.random() - 0.5) * 10
-    );
+if(intersects.length>0){
 
-    scene.add(cylinder);
-  }
+const obj = intersects[0].object;
 
-  // ---------- ANIMATION ----------
+scene.remove(obj);
+gameObjects = gameObjects.filter(o=>o!==obj);
 
-  function render(time) {
+remainingElem.textContent = gameObjects.length;
 
-    time *= 0.001;
+if(gameObjects.length===0){
 
-    cubes.forEach((cube, ndx) => {
+gameActive=false;
+alert("You Win!");
 
-      const speed = 1 + ndx * 0.1;
-      const rot = time * speed;
+}
 
-      cube.rotation.x = rot;
-      cube.rotation.y = rot;
+}
 
-    });
+});
 
-    controls.update();
+//timer
+setInterval(()=>{
 
-    renderer.render(scene, camera);
+if(!gameActive) return;
 
-    requestAnimationFrame(render);
-  }
+timeLeft--;
+timerElem.textContent = timeLeft;
 
-  requestAnimationFrame(render);
+if(timeLeft<=0){
+
+gameActive=false;
+
+if(gameObjects.length>0){
+alert("Time Up!");
+}
+
+}
+
+},1000);
+
+//animation
+function render(time){
+
+time*=0.001;
+
+cubes.forEach((cube,ndx)=>{
+
+const speed = 1 + ndx*0.1;
+const rot = time*speed;
+
+cube.rotation.x = rot;
+cube.rotation.y = rot;
+
+});
+
+controls.update();
+
+renderer.render(scene,camera);
+
+requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+
 }
 
 main();
