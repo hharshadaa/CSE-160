@@ -32,7 +32,8 @@ function main() {
   const canvas = document.querySelector('#c');
   const renderer = new THREE.WebGLRenderer({antialias:true, canvas});
 
-  // camera
+  // ---------- CAMERA ----------
+
   const fov = 75;
   const aspect = 2;
   const near = 0.1;
@@ -49,13 +50,21 @@ function main() {
   controls.target.set(0, 0, 0);
   controls.update();
 
-  // ---------- LIGHT ----------
+  // ---------- PART 5: LIGHT SOURCES ----------
 
-  const color = 0xFFFFFF;
-  const intensity = 3;
-  const light = new THREE.DirectionalLight(color, intensity);
-  light.position.set(-1, 2, 4);
-  scene.add(light);
+  // Ambient light (fills dark areas)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+
+  // Directional light (like sunlight)
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  directionalLight.position.set(-1, 2, 4);
+  scene.add(directionalLight);
+
+  // Point light (light from a position)
+  const pointLight = new THREE.PointLight(0xffaa00, 20);
+  pointLight.position.set(2, 2, 2);
+  scene.add(pointLight);
 
   // ---------- GEOMETRY ----------
 
